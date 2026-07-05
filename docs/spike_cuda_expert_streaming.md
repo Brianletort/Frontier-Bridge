@@ -1,6 +1,7 @@
 # Spike Protocol — CUDA SSD Expert Streaming (Phase E)
 
-**Status:** protocol defined; execution starts post-launch on the RTX 6000 (WSL2).
+**Status:** protocol defined; instrumentation started (see below); CUDA
+execution starts post-launch on the RTX 6000 (WSL2).
 **Rule:** decision by two-week spike, not by debate. This document is the spike.
 **IP note:** this spike evaluates only open policies (mmap/page cache, explicit
 LRU-class caches, static hotlists). Router-aware prefetch and adaptive session
@@ -67,6 +68,22 @@ the trace analysis, and revisit when hardware or runtimes change the math.
 - Expert cache hit rate exposed per run (`expert_cache_hit_rate` field is
   already in `benchresult/v1`, null until a runtime exposes it).
 - Decode-phase-only latency percentiles (exclude prefill contamination).
+
+## Executed so far (2026-07-05, M5 Max — pre-spike instrumentation)
+
+The storage-side floor of candidate A is now measured, not assumed:
+
+- **`frontier bench ssd-stream`** (built, kept): uncached random reads at
+  expert-slice granularity. Sequential bandwidth flatters the device — misses
+  are random. M5 Max internal SSD, measured: 14.22 GB/s sequential vs
+  **5.39 GB/s at 4 MB**, 7.61 at 16 MB, 10.79 at 64 MB chunks
+  (`results/experiments/m5max_ssd_expert_read.jsonl`).
+- The planner's worst-case miss math now prefers `expert_read_gbps` over
+  `seq_read_gbps` when the hardware profile has it. Example shift: Kimi K2.6
+  Q2 all-miss on the M5 Max moves from an optimistic 0.48 s/token (sequential)
+  to a measured **1.28 s/token** floor — locality is confirmed as the whole game.
+- Run the same bench on the RTX box during Days 1–2 and record
+  `expert_read_gbps` on its profile before the `--n-cpu-moe` sweep.
 
 ## Exit artifacts
 

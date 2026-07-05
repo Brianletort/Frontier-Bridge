@@ -352,7 +352,12 @@ def generate_plan(
     streaming: dict[str, Any] | None = None
     if not fits_in_memory and per_expert_gb:
         active_per_token = (arch.get("experts") or {}).get("active_per_token")
-        ssd_bw = ((storage_pool or {}).get("measured") or {}).get("seq_read_gbps")
+        storage_measured = (storage_pool or {}).get("measured") or {}
+        # Prefer bandwidth measured at expert-slice granularity (random reads,
+        # `frontier bench ssd-stream`) over sequential — misses are not sequential.
+        expert_bw = storage_measured.get("expert_read_gbps")
+        seq_bw = storage_measured.get("seq_read_gbps")
+        ssd_bw = expert_bw or seq_bw
         if n_moe_layers and active_per_token:
             worst_case_gb_per_token = round(
                 active_per_token * n_moe_layers * per_expert_gb, 2
@@ -360,7 +365,8 @@ def generate_plan(
             streaming = {
                 "worst_case_miss_gb_per_token": worst_case_gb_per_token,
                 "moe_layers": n_moe_layers,
-                "storage_seq_read_gbps": ssd_bw,
+                "storage_seq_read_gbps": seq_bw,
+                "storage_expert_read_gbps": expert_bw,
                 "worst_case_miss_seconds_per_token": (
                     round(worst_case_gb_per_token / ssd_bw, 2) if ssd_bw else None
                 ),

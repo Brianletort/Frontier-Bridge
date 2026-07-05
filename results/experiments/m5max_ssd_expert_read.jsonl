@@ -1,0 +1,3 @@
+{"chunk_mb": 4, "reads": 48, "gbps": 5.39, "reads_per_s": 1285.1, "file_gb": 4.0, "method": "uncached_random_chunk_reads_python", "measured_at": "2026-07-05T15:58:39Z"}
+{"chunk_mb": 16, "reads": 48, "gbps": 7.61, "reads_per_s": 453.5, "file_gb": 4.0, "method": "uncached_random_chunk_reads_python", "measured_at": "2026-07-05T15:58:39Z"}
+{"chunk_mb": 64, "reads": 48, "gbps": 10.79, "reads_per_s": 160.7, "file_gb": 4.0, "method": "uncached_random_chunk_reads_python", "measured_at": "2026-07-05T15:58:39Z"}

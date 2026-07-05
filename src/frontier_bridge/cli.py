@@ -26,6 +26,7 @@ from frontier_bridge.bench.experiments import (
     ladder_rung,
     sweep_point,
 )
+from frontier_bridge.bench.streamspike import expert_read_bench, stream_read_gbps
 from frontier_bridge.detect import detect_hardware
 from frontier_bridge.gguf import GGUFError, inspect_artifact
 from frontier_bridge.ingest import IngestError, ingest_repo
@@ -737,6 +738,51 @@ def bench_sweep_offload(
         append_jsonl(output, record)
         time.sleep(5)  # let memory settle between points
     typer.echo(f"Wrote {output}")
+
+
+@bench_app.command("ssd-stream")
+def bench_ssd_stream(
+    chunks: str = typer.Option(
+        "4,16,64", "--chunks", help="Comma-separated read sizes in MB (expert-slice scale)."
+    ),
+    file_gb: float = typer.Option(4.0, "--file-gb", help="Scratch file size."),
+    reads: int = typer.Option(48, "--reads", help="Random reads per chunk size."),
+    directory: Optional[Path] = typer.Option(
+        None, "--dir", help="Directory on the SSD under test (default: tmp)."
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "--output", help="Append records to this JSONL (results/experiments/...)."
+    ),
+) -> None:
+    """Measure uncached random-read bandwidth at expert-slice granularity.
+
+    This is the measured floor of L2 stream-on-miss: sequential bandwidth
+    flatters the SSD, but expert misses read megabytes at random offsets.
+    Record the worst figure as `measured.expert_read_gbps` on the hardware
+    profile's storage node so plans use it in their streaming math.
+    """
+    chunk_list = [int(c) for c in chunks.split(",")]
+    typer.echo(
+        f"Uncached random reads over a {file_gb}GB scratch file "
+        f"({reads} reads per size)..."
+    )
+    records = expert_read_bench(
+        chunk_list, file_gb=file_gb, reads_per_size=reads,
+        directory=str(directory) if directory else None,
+    )
+    for record in records:
+        typer.echo(
+            f"  {record['chunk_mb']:>4} MB chunks: {record['gbps']} GB/s "
+            f"({record['reads_per_s']} reads/s)"
+        )
+        if output:
+            append_jsonl(output, record)
+    floor = stream_read_gbps(records)
+    typer.echo(
+        f"Planner figure (worst across sizes): expert_read_gbps = {floor}"
+    )
+    if output:
+        typer.echo(f"Wrote {output}")
 
 
 @bench_app.command("context-ladder")

@@ -44,6 +44,10 @@ nodes:
     rand_read_4k_iops: null
     qd_used: 1
     bench_tool: frontier-detect python bounded read (512MB, uncached, qd1)
+    # Uncached random reads at expert-slice granularity (frontier bench
+    # ssd-stream, 2026-07-05): 4MB 5.39 / 16MB 7.61 / 64MB 10.79 GB/s.
+    # Worst figure recorded; raw records in results/experiments/.
+    expert_read_gbps: 5.39
 links:
 - from: unified0
   to: gpu0
