@@ -89,6 +89,39 @@ def test_llama_cpp_offload_computed_from_measured_sizes(repo_root):
         assert 1 <= n2 <= 10
 
 
+def test_tiering_flags_enforced_in_launch_command(repo_root):
+    """Tier placement is applied to the launch command, not left advisory."""
+    # DeepSeek Q2 (107GB) on RTX 6000 (96GB VRAM + 64GB pinnable RAM): fits in
+    # combined memory, experts overflow VRAM -> offload + mlock the L1 overflow.
+    pinned = generate_plan(
+        repo_root, "deepseek-v4-flash", "rtx6000_96gb_64ram", "chat", 16384,
+        quant="q2_imatrix", engine_override="llama_cpp",
+    )
+    flags = pinned["runtime"]["tiering_flags"]
+    assert flags["mlock"] is True
+    assert flags["mmap_stream_l2"] is False
+    assert "--mlock" in pinned["runtime"]["launch"]
+    assert "--n-cpu-moe" in pinned["runtime"]["launch"]
+
+    # GLM Q4 (467GB) on the same box streams from NVMe: mmap is the L2 tier and
+    # mlock must never be applied.
+    streaming = generate_plan(
+        repo_root, "glm-5.2", "rtx6000_96gb_64ram", "chat", 16384,
+        quant="q4_routed", engine_override="llama_cpp",
+    )
+    flags = streaming["runtime"]["tiering_flags"]
+    assert flags["mmap_stream_l2"] is True
+    assert flags["mlock"] is False
+    assert "--mlock" not in streaming["runtime"]["launch"]
+
+    # M5 Max unified memory has no separate pinnable system pool: no mlock.
+    unified = generate_plan(
+        repo_root, "deepseek-v4-flash", "apple_m5_max_137gb_detected", "chat", 16384,
+        quant="q2_imatrix", engine_override="llama_cpp",
+    )
+    assert unified["runtime"]["tiering_flags"]["mlock"] is False
+
+
 def test_expected_filled_from_verified_results_never_hand_typed(repo_root):
     """The M5 Max DeepSeek Q2 chat combination has committed verified results:
     the plan's expected block must cite them; unmeasured combos stay null."""

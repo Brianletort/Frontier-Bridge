@@ -32,13 +32,11 @@ A typical journey up the bridge:
 
 The design point that makes this work: **the hardware profile schema is a resource graph, not a fixed field set** (see [RFC 0001](../rfcs/0001-resource-graph-schemas.md)). A rack node is the same schema as a laptop — more compute nodes, more memory classes, more links. Moving up the bridge is a schema change, not a rewrite. Your plans, benchmarks, and workload profiles carry forward.
 
-## Why Digital Realty
+## Build the base, rent the spike
 
-Digital Realty sponsors Frontier Bridge because it already operates the upper tiers of this continuum: a global platform of 300+ data centers across 55+ metros serving 5,000+ customers, with interconnection, cloud on-ramps, service-provider ecosystems, and support for deployments from single racks to private suites and high-density AI workloads ([digitalrealty.com](https://www.digitalrealty.com/)).
+The continuum maps onto a simple operating thesis: **build the base, rent the spike.** The owned tiers — workstation, lab server, private rack, colocation — are the base where steady-state AI workloads live; the cloud and partner tiers are where you rent capacity for the peaks (the "cloud-adjacent burst" profile in the Phase 6 list below is exactly that seam). Frontier Bridge's job is to make the base credible: measured proof of what each rung can run, and plans that carry forward when you move up one.
 
-The sponsorship story, plainly:
-
-> Digital Realty is not trying to replace model providers or inference runtimes. It is helping build the missing infrastructure layer — hardware profiles, memory planning, runtime selection, benchmarks, and deployment recipes — that helps developers and enterprises get the most from the infrastructure they already have, and a credible path to enterprise-grade infrastructure when they outgrow it.
+The project is sponsored by [Digital Realty](https://www.digitalrealty.com/) — a natural fit, since a data center operator sits at the infrastructure end of this continuum and the connective-tissue layer benefits everyone on it. Sponsorship terms and independence are covered in [GOVERNANCE.md](../GOVERNANCE.md).
 
 ## What lands here (Phase 6+)
 

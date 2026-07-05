@@ -15,7 +15,7 @@ Profile the machine. Plan the tiers. Get a launch command — or an honest refus
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg?logo=python&logoColor=white)](pyproject.toml)
 [![Schemas: v1](https://img.shields.io/badge/schemas-v1_ratified-4c9.svg)](rfcs/0001-resource-graph-schemas.md)
 
-`v0.1-dev` — schemas and CLI shipped · verified benchmark rows: 0, first rows in progress ([roadmap](docs/roadmap.md))
+`v0.1-dev` — first verified row landed 2026-07-05: a 284B MoE running agent-capable on a single workstation, reproduced 2x ([matrix](#compatibility-matrix) · [roadmap](docs/roadmap.md))
 
 [Quickstart](#quickstart) · [Demo](#demo) · [How it works](#how-it-works) · [Architecture](docs/architecture.md) · [Status](#status) · [Honest limits](#honest-limits) · [Matrix](#compatibility-matrix) · [FAQ](docs/faq.md) · [Contributing](#contributing)
 
@@ -182,6 +182,8 @@ Additional MoE families (Qwen, MiniMax, Kimi, and newer GLM/DeepSeek releases) f
 
 ## Vision
 
+The operating thesis is simple: **build the base, rent the spike.** Own the infrastructure for your steady-state AI workloads — a workstation, a lab server, a private rack — and rent cloud capacity for the peaks. Frontier Bridge makes the base side of that equation credible: measured proof of what hardware you own can actually run.
+
 **AI runs across a continuum of infrastructure** — laptops, workstations, lab servers, private racks, colocation, and hyperscale platforms — and the aim is for the most capable open models to be practical at every rung someone can afford. Because the same resource-graph schema describes a workstation and a rack node, the project's profiles, plans, and benchmarks carry across that whole range. Full mission and strategy: [MISSION.md](MISSION.md); the upward path is sketched in [docs/enterprise_bridge.md](docs/enterprise_bridge.md).
 
 <div align="center">
@@ -199,7 +201,7 @@ Additional MoE families (Qwen, MiniMax, Kimi, and newer GLM/DeepSeek releases) f
 
 ## Sponsorship
 
-Frontier Bridge is sponsored by [Digital Realty](https://www.digitalrealty.com/). The sponsorship funds development and reference hardware for an open contribution to the missing middle layer — hardware profiles, memory planning, runtime selection, and benchmark standards — and does not change how technical decisions are made. The [results-integrity rule](GOVERNANCE.md#results-integrity) applies equally to sponsored and community contributions. See [NOTICE](NOTICE) and [GOVERNANCE.md](GOVERNANCE.md).
+Frontier Bridge is sponsored by [Digital Realty](https://www.digitalrealty.com/). Sponsorship does not change how technical decisions are made — the [results-integrity rule](GOVERNANCE.md#results-integrity) applies equally to sponsored and community contributions. See [NOTICE](NOTICE) and [GOVERNANCE.md](GOVERNANCE.md).
 
 ## Contributing
 

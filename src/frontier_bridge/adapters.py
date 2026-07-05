@@ -60,13 +60,21 @@ def launch_command(
     quant: str,
     context_budget: int,
     n_cpu_moe: int | None = None,
+    mlock: bool = False,
+    streams_l2: bool = False,
 ) -> str:
     """Generate the launch command for a runtime. <GGUF_PATH> is a placeholder
     for the hash-verified artifact path.
 
-    n_cpu_moe: number of MoE layers whose experts stay off-GPU, computed by the
-    planner from the L0 tier budget and measured per-expert sizes (llama.cpp's
-    `--n-cpu-moe`). None means the model fits without expert offload.
+    Tiering flags are applied from the plan, not left advisory:
+
+    - n_cpu_moe: MoE layers whose experts stay off-GPU, computed by the planner
+      from the L0 tier budget and measured per-expert sizes (llama.cpp's
+      `--n-cpu-moe`). None means the model fits without expert offload.
+    - mlock: pin CPU-side weights in system RAM (plan's L1 tier is pinnable and
+      holds expert overflow). Never combined with streams_l2.
+    - streams_l2: the model overflows RAM+VRAM and streams experts from storage
+      on miss; mmap must stay enabled so the page cache is the L2 tier.
     """
     if engine in ("ds4", "ds4_zgx"):
         return (
@@ -76,14 +84,21 @@ def launch_command(
         )
     if engine == "llama_cpp":
         offload = f" --n-cpu-moe {n_cpu_moe}" if n_cpu_moe else ""
+        tier_flags = ""
+        if mlock and not streams_l2:
+            tier_flags = " --mlock"
         note = (
             "n-cpu-moe from plan L0 budget and measured expert sizes"
             if n_cpu_moe
             else "fits resident per measured sizes"
         )
+        if mlock and not streams_l2:
+            note += "; mlock pins L1 expert overflow in system RAM"
+        if streams_l2:
+            note += "; mmap default-on is the L2 stream-on-miss path"
         return (
             f"llama-server -m <GGUF_PATH> -c {context_budget} --host 127.0.0.1 --port 8080 "
-            f"-ngl 999{offload}  "
+            f"-ngl 999{offload}{tier_flags} --jinja  "
             f"# llama.cpp for {model_id} {quant}; {note}"
         )
     if engine == "mlx":

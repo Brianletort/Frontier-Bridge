@@ -29,6 +29,6 @@ Everything else is labeled **claimed** with a source, or left `null`/`unrated`.
 
 ## Sponsorship
 
-Frontier Bridge is sponsored by **Digital Realty** (see [NOTICE](NOTICE)). Sponsorship means funding, hardware access, and platform expertise — it does not change how technical decisions are made: the results-integrity rule, the RFC process, and the open Apache 2.0 license apply equally to sponsored and community contributions.
+Frontier Bridge is sponsored by **Digital Realty** (see [NOTICE](NOTICE)). Sponsorship does not change how technical decisions are made: the results-integrity rule, the RFC process, and the open Apache 2.0 license apply equally to sponsored and community contributions.
 
 Public launch is gated on completing the pre-publication checklist ([docs/launch_checklist.md](docs/launch_checklist.md)), including legal, brand, and IP sign-off (Gate G0).

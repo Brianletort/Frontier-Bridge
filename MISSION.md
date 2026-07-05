@@ -43,7 +43,7 @@ High-end consumer / workstation
 
 Frontier Bridge gives users a path upward. The same profiles, plans, and benchmarks that describe a single M5 Max describe a multi-GPU rack node — the schema is a resource graph, and bigger machines are just more nodes and links.
 
-This is why Digital Realty sponsors the project: it already sits in the infrastructure layer of that continuum — data centers, interconnection, cloud on-ramps, service providers, and high-density AI deployments. Frontier Bridge is the connective tissue that makes the continuum usable, and the top rungs of the ladder are where Digital Realty's platform lives. See [docs/enterprise_bridge.md](docs/enterprise_bridge.md).
+The continuum is the "base" in a simple operating thesis: **build the base, rent the spike.** Own the infrastructure for steady-state AI workloads at whatever rung fits, and rent cloud capacity for the peaks. Frontier Bridge is the connective tissue that makes the owned side of that equation credible — measured proof of what each rung can actually run. The project is sponsored by Digital Realty; the upward path is sketched in [docs/enterprise_bridge.md](docs/enterprise_bridge.md).
 
 ## Principles
 

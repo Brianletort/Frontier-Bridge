@@ -38,11 +38,11 @@ When someone with the hardware runs `frontier detect` and opens a PR — both ar
 
 ## Why is a data center company sponsoring a workstation tool?
 
-Because the same schema that describes a workstation describes a rack node, and Digital Realty operates at the infrastructure end of that continuum. The sponsorship funds development and reference hardware; it does not change how technical decisions are made, and the [results-integrity rule](../GOVERNANCE.md#results-integrity) applies identically to sponsored and community contributions. The project is Apache 2.0 — if the sponsor vanished tomorrow, everything here still works.
+Because the same schema that describes a workstation describes a rack node, and a data center operator sits at the infrastructure end of that continuum — from the project's perspective, sponsoring the connective-tissue layer is a natural fit. Sponsorship does not change how technical decisions are made: the [results-integrity rule](../GOVERNANCE.md#results-integrity) applies identically to sponsored and community contributions. The project is Apache 2.0 — if the sponsor vanished tomorrow, everything here still works.
 
 ## Can I trust the numbers in the compatibility matrix?
 
-The tool-enforced part is mechanical: `frontier bench` will not label a result `verified` unless all four pins are non-null (plan hash, model sha256, runtime commit, hwprofile) and at least two reproductions are listed — including for maintainers. That reproductions come from fresh runtime starts is process, enforced in review per the [benchmark playbook](benchmark_playbook.md), not by the tool. Anything not yet measured says `unrated (target)`, and the matrix currently says exactly that everywhere, because v0.1-dev has zero verified rows. That zero is displayed rather than hidden; it is the standard the first rows have to meet.
+The tool-enforced part is mechanical: `frontier bench` will not label a result `verified` unless all four pins are non-null (plan hash, model sha256, runtime commit, hwprofile) and at least two reproductions are listed — including for maintainers. That reproductions come from fresh runtime starts is process, enforced in review per the [benchmark playbook](benchmark_playbook.md), not by the tool. Anything not yet measured says `unrated (target)` in the matrix. The first verified row (DeepSeek V4 Flash on the M5 Max, [results/verified/](../results/verified/)) met exactly this bar; every unmeasured combination still displays as unrated rather than hopeful.
 
 ## How do I contribute a benchmark result?
 

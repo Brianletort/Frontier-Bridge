@@ -370,14 +370,23 @@ def generate_plan(
     # llama.cpp expert offload: how many MoE layers' experts must stay off-GPU,
     # from the measured routed size vs the L0 budget.
     n_cpu_moe: int | None = None
-    if (
-        n_moe_layers
-        and routed_total_gb
-        and l0_budget is not None
-        and routed_total_gb > l0_budget
-    ):
+    experts_overflow_l0 = bool(
+        routed_total_gb and l0_budget is not None and routed_total_gb > l0_budget
+    )
+    if n_moe_layers and experts_overflow_l0:
         overflow_fraction = 1 - (l0_budget / routed_total_gb)
         n_cpu_moe = min(n_moe_layers, max(1, math.ceil(n_moe_layers * overflow_fraction)))
+
+    # Tier enforcement flags, applied to the launch command (not advisory):
+    # pin expert overflow in system RAM only when the whole model fits in
+    # memory and the L1 node is pinnable; a model streaming from storage must
+    # never be mlocked (mmap page cache is the L2 tier).
+    mlock = bool(
+        fits_in_memory
+        and experts_overflow_l0
+        and system_pool is not None
+        and system_pool.get("pinnable") is True
+    )
 
     # --- Risk annotation -----------------------------------------------------
     risks: list[str] = []
@@ -444,8 +453,19 @@ def generate_plan(
             "engine": engine,
             "build": None,
             "launch": launch_command(
-                engine, model_id, chosen_quant, context_budget, n_cpu_moe=n_cpu_moe
+                engine,
+                model_id,
+                chosen_quant,
+                context_budget,
+                n_cpu_moe=n_cpu_moe,
+                mlock=mlock,
+                streams_l2=not fits_in_memory,
             ),
+            "tiering_flags": {
+                "n_cpu_moe": n_cpu_moe,
+                "mlock": mlock,
+                "mmap_stream_l2": not fits_in_memory,
+            },
         },
         "expected": expected,
         "risks": risks,
