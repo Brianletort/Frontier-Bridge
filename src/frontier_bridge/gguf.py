@@ -263,8 +263,12 @@ def inspect_artifact(locations: list[str]) -> dict[str, Any]:
     totals = {"routed_experts": 0, "shared_experts": 0, "dense": 0}
     arch: str | None = None
     expert_count: int | None = None
+    expert_used_count: int | None = None
+    expert_shared_count: int | None = None
+    context_length: int | None = None
     block_count: int | None = None
     tensor_count = 0
+    param_count = 0
 
     for location in locations:
         shard = inspect_shard(location)
@@ -273,10 +277,20 @@ def inspect_artifact(locations: list[str]) -> dict[str, Any]:
         for key, value in shard.metadata.items():
             if key.endswith(".expert_count") and isinstance(value, int):
                 expert_count = value
+            elif key.endswith(".expert_used_count") and isinstance(value, int):
+                expert_used_count = value
+            elif key.endswith(".expert_shared_count") and isinstance(value, int):
+                expert_shared_count = value
+            elif key.endswith(".context_length") and isinstance(value, int):
+                context_length = value
             elif key.endswith(".block_count") and isinstance(value, int):
                 block_count = value
         for tensor in shard.tensors:
             totals[classify_tensor(tensor.name)] += tensor.size_bytes
+            elements = 1
+            for dim in tensor.dims:
+                elements *= dim
+            param_count += elements
 
     routed_gb = round(totals["routed_experts"] / 1e9, 2)
     dense_resident_gb = round(
@@ -294,7 +308,12 @@ def inspect_artifact(locations: list[str]) -> dict[str, Any]:
         "shards": len(locations),
         "tensor_count": tensor_count,
         "expert_count": expert_count,
+        "expert_used_count": expert_used_count,
+        "expert_shared_count": expert_shared_count,
+        "context_length": context_length,
         "block_count": block_count,
+        # Exact element count from header dims — measured, not estimated.
+        "params_total_b": round(param_count / 1e9, 1),
         "total_gb": round(sum(totals.values()) / 1e9, 2),
         "dense_resident_gb": dense_resident_gb,
         "routed_experts_gb": routed_gb,

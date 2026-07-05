@@ -1,0 +1,71 @@
+schema_version: modelprofile/v1
+model_id: kimi-k2.6
+family: kimi
+license:
+  name: other
+  commercial_ok: unknown
+architecture:
+  type: moe
+  params_total_b: 1026.4
+  params_active_b: null
+  experts:
+    routed_total: 384
+    active_per_token: 8
+    shared: 1
+  attention:
+    type: null
+    kv_scaling: null
+  context_max: 262144
+  spec_decode:
+    mtp: unknown
+artifacts:
+- format: gguf
+  quant: ud_q4_k_xl
+  upstream_name: UD-Q4_K_XL
+  size_gb: 583.7
+  source: https://huggingface.co/unsloth/Kimi-K2.6-GGUF/tree/main/UD-Q4_K_XL
+  sha256: 878e11ffb1674edfe07867adfe0fe534150dd26e075bba619bfb39eae4271e03
+  shards:
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00001-of-00014.gguf
+    sha256: 878e11ffb1674edfe07867adfe0fe534150dd26e075bba619bfb39eae4271e03
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00002-of-00014.gguf
+    sha256: c88939c0d779c977e1ebf5f295b8adbb420fbb2ec9c18871533f663e9a56e0d9
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00003-of-00014.gguf
+    sha256: 519b093917fa07b467fb86feb1d65f319a71cce6e3bec7fc6b9534374cae7776
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00004-of-00014.gguf
+    sha256: 2aefa013c83373233a62454972c3fc744f14cffb2ec20e2e65e26dfcec3e0e93
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00005-of-00014.gguf
+    sha256: 781377c71e0f659b1db27e22bca61dd93f24a549f6a7bcd720f74cab578bddeb
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00006-of-00014.gguf
+    sha256: bbd29c6812752bc1ba36f3c76d6e0b5ac73314e883a6308dd338c204d604875c
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00007-of-00014.gguf
+    sha256: 910ed8e47082560af76a69e3c0d2856d05fa08fb957aeef96958496392cededd
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00008-of-00014.gguf
+    sha256: 2b53faba9d2cc7941ee4a00c295b05be9c4ced407a89bc5f7cf911eaf96d6b53
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00009-of-00014.gguf
+    sha256: bc5fc223b7164276022667b06ee4a767bc86e9359d6121d9af6bb5521e5d87ad
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00010-of-00014.gguf
+    sha256: b73884c48c26ae489d9aa3a562b451da04046b55324f098c56269f56c5318dd1
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00011-of-00014.gguf
+    sha256: c8a70e69bae71b3e1b3db2f7c05f56dd3afa337dfca974bdedfece3aeff10353
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00012-of-00014.gguf
+    sha256: 1bfdf5802500466797930e94599d89798efaef51683fa4e6fe1c8ab4a5782651
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00013-of-00014.gguf
+    sha256: d0d522b50fb64723fce37fea5b450960ec808945e722aed533f0d196882ecda4
+  - path: UD-Q4_K_XL/Kimi-K2.6-UD-Q4_K_XL-00014-of-00014.gguf
+    sha256: 62f10a5ad04aed26a5c7970b9a9ae1dc92971f6c025093576a1333e43e833a5b
+runtime_support:
+- runtime: llama_cpp
+  status: claimed
+  source: https://huggingface.co/unsloth/Kimi-K2.6-GGUF
+memory_model:
+  dense_resident_gb:
+    ud_q4_k_xl: 12.94
+  per_expert_gb:
+    ud_q4_k_xl: 0.0244
+  kv_per_1k_tokens_mb: null
+  measurement:
+    method: gguf_header_offset_deltas
+    routed_experts_gb:
+      ud_q4_k_xl: 570.76
+known_failure_modes: []

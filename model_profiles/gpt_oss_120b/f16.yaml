@@ -1,0 +1,42 @@
+schema_version: modelprofile/v1
+model_id: gpt-oss-120b
+family: gpt-oss
+license:
+  name: apache-2.0
+  commercial_ok: unknown
+architecture:
+  type: moe
+  params_total_b: 116.8
+  params_active_b: null
+  experts:
+    routed_total: 128
+    active_per_token: 4
+    shared: null
+  attention:
+    type: null
+    kv_scaling: null
+  context_max: 131072
+  spec_decode:
+    mtp: unknown
+artifacts:
+- format: gguf
+  quant: f16
+  upstream_name: F16
+  size_gb: 65.4
+  source: https://huggingface.co/unsloth/gpt-oss-120b-GGUF/tree/main
+  sha256: 2d1f0298ae4b6c874d5a468598c5ce17c1763b3fea99de10b1a07df93cef014f
+runtime_support:
+- runtime: llama_cpp
+  status: claimed
+  source: https://huggingface.co/unsloth/gpt-oss-120b-GGUF
+memory_model:
+  dense_resident_gb:
+    f16: 4.28
+  per_expert_gb:
+    f16: 0.0133
+  kv_per_1k_tokens_mb: null
+  measurement:
+    method: gguf_header_offset_deltas
+    routed_experts_gb:
+      f16: 61.07
+known_failure_modes: []

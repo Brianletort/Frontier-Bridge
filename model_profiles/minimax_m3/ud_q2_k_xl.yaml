@@ -1,0 +1,51 @@
+schema_version: modelprofile/v1
+model_id: minimax-m3
+family: minimax
+license:
+  name: other
+  commercial_ok: unknown
+architecture:
+  type: moe
+  params_total_b: 426.0
+  params_active_b: null
+  experts:
+    routed_total: 128
+    active_per_token: 4
+    shared: 1
+  attention:
+    type: null
+    kv_scaling: null
+  context_max: 1048576
+  spec_decode:
+    mtp: unknown
+artifacts:
+- format: gguf
+  quant: ud_q2_k_xl
+  upstream_name: UD-Q2_K_XL
+  size_gb: 143.0
+  source: https://huggingface.co/unsloth/MiniMax-M3-GGUF/tree/main/UD-Q2_K_XL
+  sha256: eed1a93ce4df7174594a3f681ae141562d2d6b708b989a4fe19de4cd75cd3268
+  shards:
+  - path: UD-Q2_K_XL/MiniMax-M3-UD-Q2_K_XL-00001-of-00004.gguf
+    sha256: eed1a93ce4df7174594a3f681ae141562d2d6b708b989a4fe19de4cd75cd3268
+  - path: UD-Q2_K_XL/MiniMax-M3-UD-Q2_K_XL-00002-of-00004.gguf
+    sha256: d4a3e10d123a7c761fcaa7c5bcaf72e0861585aa7e2fe90a99f7e1ad4fc1957c
+  - path: UD-Q2_K_XL/MiniMax-M3-UD-Q2_K_XL-00003-of-00004.gguf
+    sha256: cc338e328a6cfea8b9e47476cbec5faeceb3bc6497cedc27df9985178d401c07
+  - path: UD-Q2_K_XL/MiniMax-M3-UD-Q2_K_XL-00004-of-00004.gguf
+    sha256: 152dafa2f842d36b74491038906e193af00d72098508f34aaba753b4998edb43
+runtime_support:
+- runtime: llama_cpp
+  status: claimed
+  source: https://huggingface.co/unsloth/MiniMax-M3-GGUF
+memory_model:
+  dense_resident_gb:
+    ud_q2_k_xl: 9.1
+  per_expert_gb:
+    ud_q2_k_xl: 0.0174
+  kv_per_1k_tokens_mb: null
+  measurement:
+    method: gguf_header_offset_deltas
+    routed_experts_gb:
+      ud_q2_k_xl: 133.86
+known_failure_modes: []

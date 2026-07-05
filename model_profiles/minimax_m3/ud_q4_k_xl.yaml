@@ -1,0 +1,57 @@
+schema_version: modelprofile/v1
+model_id: minimax-m3
+family: minimax
+license:
+  name: other
+  commercial_ok: unknown
+architecture:
+  type: moe
+  params_total_b: 426.0
+  params_active_b: null
+  experts:
+    routed_total: 128
+    active_per_token: 4
+    shared: 1
+  attention:
+    type: null
+    kv_scaling: null
+  context_max: 1048576
+  spec_decode:
+    mtp: unknown
+artifacts:
+- format: gguf
+  quant: ud_q4_k_xl
+  upstream_name: UD-Q4_K_XL
+  size_gb: 264.9
+  source: https://huggingface.co/unsloth/MiniMax-M3-GGUF/tree/main/UD-Q4_K_XL
+  sha256: e8e16c72310bd397e88e3ae5dc12d68dba4bf4d10e74825f91a9558e88f622a7
+  shards:
+  - path: UD-Q4_K_XL/MiniMax-M3-UD-Q4_K_XL-00001-of-00007.gguf
+    sha256: e8e16c72310bd397e88e3ae5dc12d68dba4bf4d10e74825f91a9558e88f622a7
+  - path: UD-Q4_K_XL/MiniMax-M3-UD-Q4_K_XL-00002-of-00007.gguf
+    sha256: baa943a59a83b687b9dc5a89b82e79b7482166e8a370adcfb52c7b95d44bca18
+  - path: UD-Q4_K_XL/MiniMax-M3-UD-Q4_K_XL-00003-of-00007.gguf
+    sha256: 5df24493ea4bac7f20fcef4d6eb9df38a4274046d9e84f6c4d2a393f022aaa6c
+  - path: UD-Q4_K_XL/MiniMax-M3-UD-Q4_K_XL-00004-of-00007.gguf
+    sha256: 6ac1e2a497109869f57467cafda8d1493e2098c60e0912795fbd6a57eb51b35c
+  - path: UD-Q4_K_XL/MiniMax-M3-UD-Q4_K_XL-00005-of-00007.gguf
+    sha256: a82fc7c3cee19dbe040ee9135d5b1b2d54d79441b6acfc1e956512af452d6b83
+  - path: UD-Q4_K_XL/MiniMax-M3-UD-Q4_K_XL-00006-of-00007.gguf
+    sha256: 8a37df7f6bd59723846b58cd63f891da493340dbb9ec2bbf57e5f36ec617cd75
+  - path: UD-Q4_K_XL/MiniMax-M3-UD-Q4_K_XL-00007-of-00007.gguf
+    sha256: b1efacc3ecd4500c59986aea26ea2ea24c5d46653401f8af7cf82f0752ffb73e
+runtime_support:
+- runtime: llama_cpp
+  status: claimed
+  source: https://huggingface.co/unsloth/MiniMax-M3-GGUF
+memory_model:
+  dense_resident_gb:
+    ud_q4_k_xl: 13.76
+  per_expert_gb:
+    ud_q4_k_xl: 0.0327
+  kv_per_1k_tokens_mb: null
+  measurement:
+    method: gguf_header_offset_deltas
+    routed_experts_gb:
+      ud_q4_k_xl: 251.16
+known_failure_modes: []

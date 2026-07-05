@@ -1,0 +1,59 @@
+schema_version: modelprofile/v1
+model_id: kimi-k2.6
+family: kimi
+license:
+  name: other
+  commercial_ok: unknown
+architecture:
+  type: moe
+  params_total_b: 1026.4
+  params_active_b: null
+  experts:
+    routed_total: 384
+    active_per_token: 8
+    shared: 1
+  attention:
+    type: null
+    kv_scaling: null
+  context_max: 262144
+  spec_decode:
+    mtp: unknown
+artifacts:
+- format: gguf
+  quant: ud_q2_k_xl
+  upstream_name: UD-Q2_K_XL
+  size_gb: 340.5
+  source: https://huggingface.co/unsloth/Kimi-K2.6-GGUF/tree/main/UD-Q2_K_XL
+  sha256: 6218da3cc528de6a7fb48f8c7fc4ad45f7dbeeba244b3df07c4c98b20b35121c
+  shards:
+  - path: UD-Q2_K_XL/Kimi-K2.6-UD-Q2_K_XL-00001-of-00008.gguf
+    sha256: 6218da3cc528de6a7fb48f8c7fc4ad45f7dbeeba244b3df07c4c98b20b35121c
+  - path: UD-Q2_K_XL/Kimi-K2.6-UD-Q2_K_XL-00002-of-00008.gguf
+    sha256: b2c125f7bd8526b1c74a748bba1afc3fc8f0ea3a869cb6ee67821e3b8940d250
+  - path: UD-Q2_K_XL/Kimi-K2.6-UD-Q2_K_XL-00003-of-00008.gguf
+    sha256: 4a8f9b411de5494c10adff8bc08ad0a87d5e65dde18cb0a432d121032de2ebf1
+  - path: UD-Q2_K_XL/Kimi-K2.6-UD-Q2_K_XL-00004-of-00008.gguf
+    sha256: 5cb5bf93a64877b7b4a09330dd07e54bcfae5a8ad7ce9e0eb811167b75b8651b
+  - path: UD-Q2_K_XL/Kimi-K2.6-UD-Q2_K_XL-00005-of-00008.gguf
+    sha256: 124bec4332a086c1ba13dd993ea299d44c913125893fee7d348d94a9ab3e66eb
+  - path: UD-Q2_K_XL/Kimi-K2.6-UD-Q2_K_XL-00006-of-00008.gguf
+    sha256: f3b8330d79d96f4288aba35fafe7939dba302abe4ea897146a5e179f748bc0fd
+  - path: UD-Q2_K_XL/Kimi-K2.6-UD-Q2_K_XL-00007-of-00008.gguf
+    sha256: 31a4040f1f1437f38edbe582f7ccbace5d545b71cd69da9cf1d27efd8bbf73b7
+  - path: UD-Q2_K_XL/Kimi-K2.6-UD-Q2_K_XL-00008-of-00008.gguf
+    sha256: 7e6303d24550673edf8a13d7698a1820f5a0f7cb220d17d83dffa409cc73d9d5
+runtime_support:
+- runtime: llama_cpp
+  status: claimed
+  source: https://huggingface.co/unsloth/Kimi-K2.6-GGUF
+memory_model:
+  dense_resident_gb:
+    ud_q2_k_xl: 9.33
+  per_expert_gb:
+    ud_q2_k_xl: 0.0141
+  kv_per_1k_tokens_mb: null
+  measurement:
+    method: gguf_header_offset_deltas
+    routed_experts_gb:
+      ud_q2_k_xl: 331.14
+known_failure_modes: []

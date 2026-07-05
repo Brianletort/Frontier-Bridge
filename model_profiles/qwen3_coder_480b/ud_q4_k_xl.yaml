@@ -1,0 +1,55 @@
+schema_version: modelprofile/v1
+model_id: qwen3-coder-480b
+family: qwen
+license:
+  name: apache-2.0
+  commercial_ok: unknown
+architecture:
+  type: moe
+  params_total_b: 480.2
+  params_active_b: null
+  experts:
+    routed_total: 160
+    active_per_token: 8
+    shared: null
+  attention:
+    type: null
+    kv_scaling: null
+  context_max: 262144
+  spec_decode:
+    mtp: unknown
+artifacts:
+- format: gguf
+  quant: ud_q4_k_xl
+  upstream_name: UD-Q4_K_XL
+  size_gb: 275.6
+  source: https://huggingface.co/unsloth/Qwen3-Coder-480B-A35B-Instruct-GGUF/tree/main/UD-Q4_K_XL
+  sha256: ae0d41c4baa6871a3702e389be00dac564fd28ad407504ec8e2f46b7c4ee0a47
+  shards:
+  - path: UD-Q4_K_XL/Qwen3-Coder-480B-A35B-Instruct-UD-Q4_K_XL-00001-of-00006.gguf
+    sha256: ae0d41c4baa6871a3702e389be00dac564fd28ad407504ec8e2f46b7c4ee0a47
+  - path: UD-Q4_K_XL/Qwen3-Coder-480B-A35B-Instruct-UD-Q4_K_XL-00002-of-00006.gguf
+    sha256: 3d65caa201b580575b7ad5aa06ebd73d16e08357a4a7d56aed998d51c18fdbc6
+  - path: UD-Q4_K_XL/Qwen3-Coder-480B-A35B-Instruct-UD-Q4_K_XL-00003-of-00006.gguf
+    sha256: 130979c0b4d45bdf4c378173d3ad5e661768db3c5aec56f951731e7f1d025023
+  - path: UD-Q4_K_XL/Qwen3-Coder-480B-A35B-Instruct-UD-Q4_K_XL-00004-of-00006.gguf
+    sha256: 23dee00ef4a9b899974d01a55232845b7e5d8d5709aceb73e69cd1267080e103
+  - path: UD-Q4_K_XL/Qwen3-Coder-480B-A35B-Instruct-UD-Q4_K_XL-00005-of-00006.gguf
+    sha256: 64fdefb519125edd98af3d8d357871677d7ec6504cf2c22bff0f3095d2d7fe52
+  - path: UD-Q4_K_XL/Qwen3-Coder-480B-A35B-Instruct-UD-Q4_K_XL-00006-of-00006.gguf
+    sha256: 990944011d347e8fb57d250fdd4a065cbbb41b6ab3fae7604c325e4b39e58f56
+runtime_support:
+- runtime: llama_cpp
+  status: claimed
+  source: https://huggingface.co/unsloth/Qwen3-Coder-480B-A35B-Instruct-GGUF
+memory_model:
+  dense_resident_gb:
+    ud_q4_k_xl: 7.53
+  per_expert_gb:
+    ud_q4_k_xl: 0.027
+  kv_per_1k_tokens_mb: null
+  measurement:
+    method: gguf_header_offset_deltas
+    routed_experts_gb:
+      ud_q4_k_xl: 268.02
+known_failure_modes: []

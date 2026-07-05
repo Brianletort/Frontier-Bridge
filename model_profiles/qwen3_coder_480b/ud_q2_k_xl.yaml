@@ -1,0 +1,51 @@
+schema_version: modelprofile/v1
+model_id: qwen3-coder-480b
+family: qwen
+license:
+  name: apache-2.0
+  commercial_ok: unknown
+architecture:
+  type: moe
+  params_total_b: 480.2
+  params_active_b: null
+  experts:
+    routed_total: 160
+    active_per_token: 8
+    shared: null
+  attention:
+    type: null
+    kv_scaling: null
+  context_max: 262144
+  spec_decode:
+    mtp: unknown
+artifacts:
+- format: gguf
+  quant: ud_q2_k_xl
+  upstream_name: UD-Q2_K_XL
+  size_gb: 180.3
+  source: https://huggingface.co/unsloth/Qwen3-Coder-480B-A35B-Instruct-GGUF/tree/main/UD-Q2_K_XL
+  sha256: 1397dab16f63440b9e9da5311fc303da200296d9c4b9abafb9fe34ea16d280e6
+  shards:
+  - path: UD-Q2_K_XL/Qwen3-Coder-480B-A35B-Instruct-UD-Q2_K_XL-00001-of-00004.gguf
+    sha256: 1397dab16f63440b9e9da5311fc303da200296d9c4b9abafb9fe34ea16d280e6
+  - path: UD-Q2_K_XL/Qwen3-Coder-480B-A35B-Instruct-UD-Q2_K_XL-00002-of-00004.gguf
+    sha256: 4c4c0726001fa3120d0b7f38bc9954cc14ac4c91ea04ab30b3378c06ca8c04c5
+  - path: UD-Q2_K_XL/Qwen3-Coder-480B-A35B-Instruct-UD-Q2_K_XL-00003-of-00004.gguf
+    sha256: 22b20f31c990a0ea2cd6fdfb0f8edf86fc3dcea2472bffc4fa64335c35cf37da
+  - path: UD-Q2_K_XL/Qwen3-Coder-480B-A35B-Instruct-UD-Q2_K_XL-00004-of-00004.gguf
+    sha256: 158d2968112df576bf658d8d34eab683542c742374daf88d277cbf9e037dc189
+runtime_support:
+- runtime: llama_cpp
+  status: claimed
+  source: https://huggingface.co/unsloth/Qwen3-Coder-480B-A35B-Instruct-GGUF
+memory_model:
+  dense_resident_gb:
+    ud_q2_k_xl: 7.51
+  per_expert_gb:
+    ud_q2_k_xl: 0.0174
+  kv_per_1k_tokens_mb: null
+  measurement:
+    method: gguf_header_offset_deltas
+    routed_experts_gb:
+      ud_q2_k_xl: 172.78
+known_failure_modes: []

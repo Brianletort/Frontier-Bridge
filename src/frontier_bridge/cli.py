@@ -23,6 +23,7 @@ from frontier_bridge.bench.engine import SUITES, build_result, load_suite, plan_
 from frontier_bridge.bench.experiments import append_jsonl, ladder_rung, sweep_point
 from frontier_bridge.detect import detect_hardware
 from frontier_bridge.gguf import GGUFError, inspect_artifact
+from frontier_bridge.ingest import IngestError, ingest_repo
 from frontier_bridge.planner.engine import PlanError, generate_plan
 from frontier_bridge.results import fold_matrix, load_results, render_markdown
 from frontier_bridge.runner import (
@@ -120,6 +121,68 @@ def catalog_models() -> None:
         raise typer.Exit()
     for p in profiles:
         typer.echo(f"{p.model_id:24s}  quant={p.quant:12s}  {p.summary}")
+
+
+@catalog_app.command("add")
+def catalog_add(
+    repo: str = typer.Argument(..., help="HF repo (org/name) or URL, optionally /tree/<ref>."),
+    quant: Optional[str] = typer.Option(
+        None, "--quant", help="Quant variant to ingest (dir name or quant token)."
+    ),
+    model_id: Optional[str] = typer.Option(
+        None, "--model-id", help="Catalog model id; derived from the repo name by default."
+    ),
+    family: Optional[str] = typer.Option(None, "--family", help="Model family label."),
+    inspect: bool = typer.Option(
+        True,
+        "--inspect/--no-inspect",
+        help="Range-inspect GGUF headers to measure the memory model (recommended).",
+    ),
+    write: bool = typer.Option(
+        False, "--write", help="Write the profile into model_profiles/ (else print it)."
+    ),
+    force: bool = typer.Option(False, "--force", help="Overwrite an existing profile file."),
+) -> None:
+    """Generate a modelprofile/v1 draft from a Hugging Face GGUF repo.
+
+    sha256 pins come from the repo's LFS metadata; sizes come from the file
+    listing; architecture and memory-model figures are measured from GGUF
+    headers via range requests (no full download). Values that cannot be
+    measured stay null — review the draft before committing it.
+    """
+    try:
+        profile = ingest_repo(
+            repo, model_id=model_id, quant=quant, family=family, inspect_headers=inspect
+        )
+    except (IngestError, GGUFError, OSError) as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    errors = validate_instance(profile)
+    if errors:
+        typer.secho(f"internal error: generated profile fails schema: {errors}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    text = yaml.safe_dump(profile, sort_keys=False, default_flow_style=False)
+    if not write:
+        typer.echo(text)
+        typer.echo("# Draft only — rerun with --write to save into model_profiles/.")
+        return
+    root = find_repo_root()
+    model_dir = profile["model_id"].replace(".", "_").replace("-", "_")
+    out_path = root / "model_profiles" / model_dir / f"{profile['artifacts'][0]['quant']}.yaml"
+    if out_path.exists() and not force:
+        typer.secho(f"error: {out_path} exists (use --force to overwrite)", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(text, encoding="utf-8")
+    typer.echo(f"Wrote {out_path}")
+    if profile["architecture"]["params_total_b"] is None:
+        typer.secho(
+            "note: params_total_b is null (headers not inspected) — the planner "
+            "will refuse this model until it is measured.",
+            fg=typer.colors.YELLOW,
+        )
 
 
 def _artifact_shard_urls(artifact: dict) -> list[str]:
