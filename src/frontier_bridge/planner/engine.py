@@ -114,6 +114,7 @@ def generate_plan(
     workload: str,
     context_budget: int,
     quant: str | None = None,
+    engine_override: str | None = None,
 ) -> dict[str, Any]:
     """Generate a plan/v1 dict. Raises PlanError only for bad inputs;
     infeasible combinations return a not_recommended plan instead."""
@@ -271,7 +272,15 @@ def generate_plan(
         for r in model.get("runtime_support", [])
         if r.get("status") in ("claimed", "verified")
     ]
-    engine = select_runtime(hw, claimed_runtimes)
+    if engine_override is not None:
+        if engine_override not in claimed_runtimes:
+            raise PlanError(
+                f"engine {engine_override!r} is not in the model's claimed runtimes "
+                f"({sorted(r for r in claimed_runtimes if r)})"
+            )
+        engine = engine_override
+    else:
+        engine = select_runtime(hw, claimed_runtimes)
     if engine is None:
         return refuse(
             [

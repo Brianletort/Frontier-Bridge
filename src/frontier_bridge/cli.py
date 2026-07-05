@@ -203,6 +203,9 @@ def plan(
     quant: Optional[str] = typer.Option(
         None, "--quant", help="Force a specific quant; default picks the best fitting one."
     ),
+    engine: Optional[str] = typer.Option(
+        None, "--engine", help="Force a runtime engine (must be in the model's claimed runtimes)."
+    ),
     output: Optional[Path] = typer.Option(
         None, "--output", "-o", help="Write plan/v1 YAML here instead of stdout."
     ),
@@ -220,6 +223,7 @@ def plan(
             workload=workload,
             context_budget=ctx,
             quant=quant,
+            engine_override=engine,
         )
     except PlanError as exc:
         typer.secho(f"error: {exc}", fg=typer.colors.RED)
