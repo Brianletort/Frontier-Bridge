@@ -98,7 +98,7 @@ That refusal is the product working as designed. A planner you can trust when it
 | `frontier results matrix` | Folds committed results into the compatibility matrix; verified requires all pins + two reproductions |
 | CI | GitHub Actions: pytest + schema validation on Linux and macOS |
 
-**Next:** run the benchmark matrix on the three reference machines ([playbook](docs/benchmark_playbook.md)), publish verified rows, tag v0.1.0, then the CUDA SSD expert-streaming spike ([protocol](docs/spike_cuda_expert_streaming.md)) targeting the RTX 6000 96 GB class. Launch gates in [docs/launch_checklist.md](docs/launch_checklist.md).
+**Next:** run the benchmark matrix on the three reference machines ([playbook](docs/benchmark_playbook.md)), publish verified rows, tag v0.1.0, then the CUDA SSD expert-streaming spike ([protocol](docs/spike_cuda_expert_streaming.md)) targeting the RTX 6000 96 GB class. Full phased plan in [docs/roadmap.md](docs/roadmap.md); launch gates in [docs/launch_checklist.md](docs/launch_checklist.md).
 
 ## Target hardware and models (v0.1)
 
