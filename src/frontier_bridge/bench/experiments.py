@@ -64,17 +64,27 @@ def parse_metal_limits(log_path: Path) -> dict[str, Any]:
 
 
 def parse_kv_size(log_path: Path) -> float | None:
-    """Sum 'KV self size' / 'KV buffer size' MiB figures from the server log."""
+    """Total KV cache MiB from the server log, across known llama.cpp formats.
+
+    Preference order (first pattern with matches wins):
+    1. 'KV self size = X MiB'            (older builds)
+    2. 'llama_kv_cache: size = X MiB'    (current builds, needs -lv 5)
+    3. '... KV buffer size = X MiB'      (per-device lines; can read 0 on Metal)
+    Multiple matches are summed (models with split/SWA caches log one per cache).
+    """
     try:
         text = log_path.read_text(errors="replace")
     except OSError:
         return None
-    sizes = [
-        float(m) for m in re.findall(r"KV self size\s*=\s*([\d.]+)\s*MiB", text)
-    ] or [
-        float(m) for m in re.findall(r"KV buffer size\s*=\s*([\d.]+)\s*MiB", text)
-    ]
-    return round(sum(sizes), 1) if sizes else None
+    for pattern in (
+        r"KV self size\s*=\s*([\d.]+)\s*MiB",
+        r"llama_kv_cache[^\n]*?:\s*size\s*=\s*([\d.]+)\s*MiB",
+        r"KV buffer size\s*=\s*([\d.]+)\s*MiB",
+    ):
+        sizes = [float(m) for m in re.findall(pattern, text)]
+        if sizes:
+            return round(sum(sizes), 1)
+    return None
 
 
 def build_needle_prompt(target_tokens: int) -> str:
@@ -162,6 +172,7 @@ def ladder_rung(
         "llama-server", "-m", model, "-c", str(ctx), "-np", "1",
         "--host", "127.0.0.1", "--port", str(port),
         "-ngl", "999", "--n-cpu-moe", str(n_cpu_moe), "--jinja",
+        "-lv", "5",  # KV cache size lines only appear at higher verbosity
     ]
     if kv_quant:
         cmd += ["-ctk", kv_quant, "-ctv", kv_quant]

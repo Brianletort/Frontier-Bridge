@@ -20,7 +20,12 @@ from frontier_bridge.catalog import (
 )
 from frontier_bridge.bench.collectors import start_collectors, stop_and_report
 from frontier_bridge.bench.engine import SUITES, build_result, load_suite, plan_hash, run_suite
-from frontier_bridge.bench.experiments import append_jsonl, ladder_rung, sweep_point
+from frontier_bridge.bench.experiments import (
+    append_jsonl,
+    kv_per_1k_tokens_mb,
+    ladder_rung,
+    sweep_point,
+)
 from frontier_bridge.detect import detect_hardware
 from frontier_bridge.gguf import GGUFError, inspect_artifact
 from frontier_bridge.ingest import IngestError, ingest_repo
@@ -183,6 +188,61 @@ def catalog_add(
             "will refuse this model until it is measured.",
             fg=typer.colors.YELLOW,
         )
+
+
+@catalog_app.command("kv-from-ladder")
+def catalog_kv_from_ladder(
+    ladder_file: Path = typer.Argument(..., help="Context-ladder JSONL (frontier bench context-ladder)."),
+    model: str = typer.Option(..., "--model", help="Model id whose profiles get the measurement."),
+    quant: Optional[str] = typer.Option(
+        None, "--quant", help="Write only into this quant's profile (default: all of the model's)."
+    ),
+) -> None:
+    """Fold context-ladder measurements into the model's kv_per_1k_tokens_mb.
+
+    Only stable rungs with a parsed KV size count; the f16 (unquantized KV)
+    figure lands in memory_model.kv_per_1k_tokens_mb, and the full per-kv-quant
+    fold is recorded under memory_model.measurement.
+    """
+    records = [
+        json.loads(line)
+        for line in ladder_file.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    folded = kv_per_1k_tokens_mb(records)
+    if not folded:
+        typer.secho(
+            "error: no stable rungs with parsed KV sizes in this ladder file",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=1)
+    typer.echo(f"Measured KV MB per 1K tokens: {folded}")
+
+    root = find_repo_root()
+    entries = get_model_profiles(root, model)
+    if not entries:
+        typer.secho(f"error: model {model!r} not found", fg=typer.colors.RED)
+        raise typer.Exit(code=2)
+    written = 0
+    for entry in entries:
+        artifacts = entry.data.get("artifacts", [])
+        if quant is not None and not any(a.get("quant") == quant for a in artifacts):
+            continue
+        memory_model = entry.data.setdefault("memory_model", {})
+        if "f16" in folded:
+            memory_model["kv_per_1k_tokens_mb"] = folded["f16"]
+        measurement = memory_model.setdefault("measurement", {})
+        measurement["kv_per_1k_tokens_mb_by_kv_quant"] = folded
+        measurement["kv_method"] = "context_ladder_server_log_kv_size"
+        entry.path.write_text(
+            yaml.safe_dump(entry.data, sort_keys=False, default_flow_style=False),
+            encoding="utf-8",
+        )
+        typer.echo(f"Wrote {entry.path}")
+        written += 1
+    if written == 0:
+        typer.secho("error: no matching profile files", fg=typer.colors.RED)
+        raise typer.Exit(code=2)
 
 
 def _artifact_shard_urls(artifact: dict) -> list[str]:

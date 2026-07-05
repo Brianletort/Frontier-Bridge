@@ -254,10 +254,25 @@ def generate_plan(
         dense_floor_gb = _estimate_size_gb(arch.get("params_active_b"), chosen_quant)
     per_expert_gb = (memory_model.get("per_expert_gb") or {}).get(chosen_quant)
 
+    # KV footprint: measured MB per 1K tokens (from context-ladder runs) when
+    # available; null stays null — the plan then carries a disclosed risk.
+    kv_per_1k_mb = memory_model.get("kv_per_1k_tokens_mb")
+    hot_window_tokens = min(context_budget, _HOT_KV_WINDOW_CAP)
+    hot_kv_gb = None
+    total_kv_gb = None
+    if kv_per_1k_mb:
+        hot_kv_gb = round(kv_per_1k_mb * hot_window_tokens / 1000 / 1024, 2)
+        total_kv_gb = round(kv_per_1k_mb * context_budget / 1000 / 1024, 2)
+
     # --- Expert-tier budgeting --------------------------------------------
+    # The hot KV window competes with experts for primary memory; when its
+    # footprint is measured it comes out of the L0 budget.
     l0_budget = None
     if dense_floor_gb is not None and primary_gb:
-        l0_budget = max(round(primary_gb * primary_headroom - dense_floor_gb, 1), 0)
+        l0_budget = max(
+            round(primary_gb * primary_headroom - dense_floor_gb - (hot_kv_gb or 0), 1),
+            0,
+        )
 
     def _expert_capacity(budget_gb: float | None) -> int | None:
         """How many (expert, layer) slices fit in a tier — measured units only."""
@@ -286,10 +301,15 @@ def generate_plan(
         routed_experts["l2"] = {"node": storage_pool["id"], "mode": "stream_on_miss"}
 
     kv_cache: dict[str, Any] = {
-        "hot": {"node": primary_id, "window_tokens": min(context_budget, _HOT_KV_WINDOW_CAP)},
+        "hot": {"node": primary_id, "window_tokens": hot_window_tokens},
     }
+    if hot_kv_gb is not None:
+        kv_cache["hot"]["estimated_gb"] = hot_kv_gb
+        kv_cache["hot"]["source"] = "measured_kv_per_1k_tokens"
     if system_pool is not None:
         kv_cache["warm"] = {"node": system_pool["id"]}
+        if total_kv_gb is not None and hot_kv_gb is not None:
+            kv_cache["warm"]["estimated_gb"] = round(total_kv_gb - hot_kv_gb, 2)
     if storage_pool is not None:
         kv_cache["cold"] = {"node": storage_pool["id"], "persist": True}
 
@@ -378,6 +398,8 @@ def generate_plan(
         risks.append("dense_resident_estimated_not_measured")
     if context_max is None:
         risks.append("context_max_unverified")
+    if kv_per_1k_mb is None:
+        risks.append("kv_footprint_unmeasured_context_budget_not_validated")
     if workload in ("coding_agent", "multi_agent", "tool_calling"):
         risks.append("agent_workloads_are_decode_latency_sensitive")
 

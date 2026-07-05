@@ -31,6 +31,18 @@ def test_parse_kv_size_sums_per_device_lines(tmp_path: Path):
     assert parse_kv_size(tmp_path / "missing.log") is None
 
 
+def test_parse_kv_size_current_llamacpp_format(tmp_path: Path):
+    """Current builds log a summary line (at -lv 5) plus per-device buffer lines
+    that can read 0.00 on Metal; the summary must win over the buffer lines."""
+    log = tmp_path / "server.log"
+    log.write_text(
+        "0.00.171.900 I llama_kv_cache:       MTL0 KV buffer size =     0.00 MiB\n"
+        "0.00.171.902 I llama_kv_cache: size =  576.00 MiB (  4096 cells,  36 layers,"
+        "  4/1 seqs), K (f16):  288.00 MiB, V (f16):  288.00 MiB\n"
+    )
+    assert parse_kv_size(log) == 576.0
+
+
 def test_parse_kv_size_prefers_self_size(tmp_path: Path):
     log = tmp_path / "server.log"
     log.write_text(
