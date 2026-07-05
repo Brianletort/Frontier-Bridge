@@ -1,0 +1,79 @@
+# Reference profile: DGX Spark / GB10, 128 GB coherent unified memory, NVMe.
+# provenance.method is manual: numbers here come from vendor specs or are null.
+# Unified memory is one node — the planner sees the different link topology, same schema.
+schema_version: hwprofile/v1
+profile_id: gb10_128gb
+provenance:
+  method: manual
+  detected_at: null
+  tool_version: null
+  os:
+    family: linux
+    version: null
+    kernel: null
+
+nodes:
+  - id: gpu0
+    kind: compute
+    class: gpu
+    vendor: nvidia
+    arch: gb10
+    model: GB10 Grace Blackwell Superchip
+    api:
+      cuda: unverified
+      sm: null                    # SM121 per community reports; verify on hardware
+    rated:
+      fp16_tflops: null
+  - id: cpu0
+    kind: compute
+    class: cpu
+    vendor: nvidia
+    arch: arm64
+    model: GB10 Grace CPU
+    cores: null
+    numa_nodes: 1
+  - id: unified0
+    kind: memory
+    class: unified
+    capacity_gb: 128
+    bandwidth_gbps:
+      rated: null
+      measured: null
+    pinnable: unknown
+  - id: nvme0
+    kind: storage
+    class: nvme
+    capacity_gb: null
+    pcie:
+      gen: null
+      lanes: null
+    measured:
+      seq_read_gbps: null
+      rand_read_4k_iops: null
+      qd_used: null
+      bench_tool: null
+  - id: net0
+    kind: network
+    class: ethernet
+    rated_gbps: null
+
+links:
+  - from: unified0
+    to: gpu0
+    via: unified
+    available: true
+    measured:
+      h2d_gbps: null
+      d2h_gbps: null
+  - from: nvme0
+    to: unified0
+    via: pcie
+    measured:
+      seq_read_gbps: null
+
+envelope:
+  power_w:
+    rated: null
+    measured_idle: null
+    measured_load: null
+  thermal_headroom: unknown

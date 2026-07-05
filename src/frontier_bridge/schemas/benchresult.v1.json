@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Brianletort/Frontier-Bridge/schemas/benchresult.v1.json",
+  "title": "Frontier Bridge Benchmark Result (benchresult/v1)",
+  "description": "One JSON file per run. Pins plan hash, model hash, runtime commit, and hwprofile so results stay reproducible. The leaderboard is a fold over these files.",
+  "type": "object",
+  "required": ["schema_version", "result_id", "measured_at", "pins", "metrics"],
+  "properties": {
+    "schema_version": { "const": "benchresult/v1" },
+    "result_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "measured_at": { "type": "string" },
+    "pins": {
+      "type": "object",
+      "required": ["plan_hash", "model_sha256", "runtime_commit", "hwprofile_id"],
+      "description": "All four pins must be non-null for a result to be labeled verified.",
+      "properties": {
+        "plan_hash": { "type": ["string", "null"] },
+        "model_sha256": { "type": ["string", "null"] },
+        "runtime_commit": { "type": ["string", "null"] },
+        "hwprofile_id": { "type": ["string", "null"] }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "ttft_ms": { "type": ["number", "null"] },
+        "prefill_tps": { "type": ["number", "null"] },
+        "decode_tps": { "type": ["number", "null"] },
+        "token_latency_ms": {
+          "type": "object",
+          "properties": {
+            "p50": { "type": ["number", "null"] },
+            "p95": { "type": ["number", "null"] },
+            "p99": { "type": ["number", "null"] }
+          }
+        },
+        "peak_vram_gb": { "type": ["number", "null"] },
+        "peak_ram_gb": { "type": ["number", "null"] },
+        "ssd_read_gbps": { "type": ["number", "null"] },
+        "ssd_total_read_gb": {
+          "type": ["number", "null"],
+          "description": "Total bytes read from SSD during the run — endurance tracking."
+        },
+        "expert_cache_hit_rate": {
+          "type": ["number", "null"],
+          "description": "Null when the runtime does not expose it."
+        },
+        "kv_cache_footprint_gb": { "type": ["number", "null"] },
+        "context_len_tokens": { "type": ["integer", "null"] }
+      }
+    },
+    "workload_tasks": {
+      "type": "array",
+      "description": "Pass/fail per task, for agent-usefulness rating.",
+      "items": {
+        "type": "object",
+        "required": ["task", "passed"],
+        "properties": {
+          "task": { "type": "string" },
+          "passed": { "type": "boolean" },
+          "notes": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "os": { "type": ["string", "null"] },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "reproductions": {
+      "type": "array",
+      "description": "result_ids of prior runs this run reproduces. Two reproductions are required for verified status.",
+      "items": { "type": "string" }
+    },
+    "status": { "enum": ["claimed", "verified"] }
+  }
+}

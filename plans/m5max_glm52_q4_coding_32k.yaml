@@ -1,0 +1,51 @@
+schema_version: plan/v1
+plan_id: apple-m5-max-137gb-detected-glm-5.2-q4-routed-coding-agent-32768
+inputs:
+  hwprofile: apple_m5_max_137gb_detected
+  modelprofile: glm-5.2/q4_routed
+  workload: coding_agent
+  context_budget: 32768
+verdict: experimental
+placement:
+  resident:
+    dense_core: unified0
+    router: unified0
+    shared_experts: unified0
+  tiered:
+    routed_experts:
+      l0:
+        node: unified0
+        budget_gb: 100.2
+        policy: layer_aware_lru
+      l2:
+        node: ssd0
+        mode: stream_on_miss
+    kv_cache:
+      hot:
+        node: unified0
+        window_tokens: 32768
+      cold:
+        node: ssd0
+        persist: true
+phases:
+  prefill:
+    batch: auto
+    notes: throughput-bound; expert misses tolerable
+  decode:
+    target_p95_ms: null
+    prefetch: static_hotlist
+    notes: miss-sensitive; protect the active path
+runtime:
+  engine: ds4
+  build: null
+  launch: 'ds4 serve --model <GGUF_PATH> --ctx 32768 --host 127.0.0.1 --port 8080  #
+    ds4 for glm-5.2 q4_routed; verify flags against ds4 docs'
+expected:
+  decode_tps:
+    p50: null
+    source: null
+  usability_class: unrated
+risks:
+- decode_latency_spikes_on_expert_miss
+- model_size_estimated_from_param_count_not_measured
+- agent_workloads_are_decode_latency_sensitive

@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Brianletort/Frontier-Bridge/schemas/plan.v1.json",
+  "title": "Frontier Bridge Execution Plan (plan/v1)",
+  "description": "Phase-separated execution plan: prefill and decode get independent placement and policy. A refusal (verdict: not_recommended) is a first-class plan.",
+  "type": "object",
+  "required": ["schema_version", "plan_id", "inputs", "verdict"],
+  "properties": {
+    "schema_version": { "const": "plan/v1" },
+    "plan_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "inputs": {
+      "type": "object",
+      "required": ["hwprofile", "modelprofile", "workload", "context_budget"],
+      "properties": {
+        "hwprofile": { "type": "string" },
+        "modelprofile": { "type": "string", "description": "model_id/quant, e.g. glm-5.2/q4_routed" },
+        "workload": {
+          "enum": [
+            "chat", "coding_agent", "long_context", "tool_calling",
+            "rag", "batch_summarization", "multi_agent", "data_analysis"
+          ]
+        },
+        "context_budget": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "verdict": { "enum": ["recommended", "experimental", "not_recommended"] },
+    "reasons": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Machine-readable reasons. Required when verdict is not_recommended."
+    },
+    "placement": {
+      "type": "object",
+      "properties": {
+        "resident": {
+          "type": "object",
+          "description": "Tensor class to memory node id from the hwprofile.",
+          "additionalProperties": { "type": "string" }
+        },
+        "tiered": {
+          "type": "object",
+          "properties": {
+            "routed_experts": {
+              "type": "object",
+              "properties": {
+                "l0": { "$ref": "#/$defs/tier" },
+                "l1": { "$ref": "#/$defs/tier" },
+                "l2": { "$ref": "#/$defs/tier" }
+              }
+            },
+            "kv_cache": {
+              "type": "object",
+              "properties": {
+                "hot": { "$ref": "#/$defs/kvTier" },
+                "warm": { "$ref": "#/$defs/kvTier" },
+                "cold": { "$ref": "#/$defs/kvTier" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "phases": {
+      "type": "object",
+      "properties": {
+        "prefill": {
+          "type": "object",
+          "properties": {
+            "batch": { "type": ["string", "integer", "null"] },
+            "notes": { "type": ["string", "null"] }
+          }
+        },
+        "decode": {
+          "type": "object",
+          "properties": {
+            "target_p95_ms": { "type": ["number", "null"] },
+            "prefetch": { "$ref": "#/$defs/openPolicy" },
+            "notes": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "engine": { "type": "string" },
+        "build": { "type": ["string", "null"], "description": "Commit-pinned build reference." },
+        "launch": { "type": ["string", "null"], "description": "Exact launch command recorded here." }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "description": "Filled from prior benchmark results with a source reference; never hand-typed.",
+      "properties": {
+        "decode_tps": {
+          "type": "object",
+          "properties": {
+            "p50": { "type": ["number", "null"] },
+            "source": { "type": ["string", "null"] }
+          }
+        },
+        "usability_class": {
+          "enum": ["unrated", "runs", "usable", "interactive", "agent_capable", "not_recommended"]
+        }
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "verdict": { "const": "not_recommended" } } },
+      "then": { "required": ["reasons"] }
+    },
+    {
+      "if": { "properties": { "verdict": { "enum": ["recommended", "experimental"] } } },
+      "then": { "required": ["placement", "phases", "runtime", "expected"] }
+    }
+  ],
+  "$defs": {
+    "openPolicy": {
+      "description": "Only IP-cleared, open policies are valid in v1. See IP_NOTICE.md.",
+      "enum": ["layer_aware_lru", "lru", "lfu", "static_hotlist", "stream_on_miss", "none"]
+    },
+    "tier": {
+      "type": "object",
+      "required": ["node"],
+      "properties": {
+        "node": { "type": "string" },
+        "budget_gb": { "type": ["number", "null"] },
+        "policy": { "$ref": "#/$defs/openPolicy" },
+        "mode": { "enum": ["resident", "cache", "stream_on_miss", null] },
+        "pinned": { "enum": [true, false, "unknown"] }
+      }
+    },
+    "kvTier": {
+      "type": "object",
+      "required": ["node"],
+      "properties": {
+        "node": { "type": "string" },
+        "window_tokens": { "type": ["integer", "null"] },
+        "persist": { "enum": [true, false, "unknown"] }
+      }
+    }
+  }
+}

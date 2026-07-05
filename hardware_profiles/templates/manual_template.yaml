@@ -1,0 +1,81 @@
+# Manual hardware profile template (hwprofile/v1).
+#
+# Use this when `frontier detect` does not support your platform.
+# Rules:
+#   - Never guess. Leave unknown values as null or "unknown".
+#   - If you measured a number, record the tool and settings in the measured block.
+#   - Set provenance.method to "manual".
+#   - Validate before submitting: `frontier validate hardware_profiles/`
+schema_version: hwprofile/v1
+profile_id: my_system_id          # lowercase, [a-z0-9_], e.g. rtx5090_32gb_128ram
+provenance:
+  method: manual
+  detected_at: null               # ISO timestamp if you ran measurements, else null
+  tool_version: null
+  os:
+    family: linux                 # linux | macos | windows | unknown
+    version: null
+    kernel: null
+
+nodes:
+  # One compute node per GPU and one for the CPU.
+  - id: gpu0
+    kind: compute
+    class: gpu
+    vendor: null                  # nvidia | amd | apple | ...
+    arch: null
+    model: null
+    api: {}                       # e.g. { cuda: "13.x" } or { metal: "3" } — only if known
+    rated:
+      fp16_tflops: null
+  - id: cpu0
+    kind: compute
+    class: cpu
+    vendor: null
+    arch: null
+    model: null
+    cores: null
+    numa_nodes: null
+
+  # Memory nodes. class: device_local (VRAM) | unified | system | cxl | remote
+  - id: vram0
+    kind: memory
+    class: device_local
+    capacity_gb: null
+    bandwidth_gbps: { rated: null, measured: null }
+    attached_to: gpu0
+  - id: sysram0
+    kind: memory
+    class: system
+    capacity_gb: null
+    bandwidth_gbps: { rated: null, measured: null }
+    pinnable: unknown
+
+  # Storage nodes. class: nvme | sata | internal_ssd | other
+  - id: nvme0
+    kind: storage
+    class: nvme
+    capacity_gb: null
+    pcie: { gen: null, lanes: null }
+    measured:
+      seq_read_gbps: null         # if measured: record tool below
+      rand_read_4k_iops: null
+      qd_used: null
+      bench_tool: null            # e.g. "fio 3.36, 10GB seq read, qd32"
+
+links:
+  # Links are the part that matters most. Record what you measured.
+  - from: sysram0
+    to: vram0
+    via: pcie                     # pcie | gds | unified | nvlink | ethernet | internal | other
+    gen: null
+    lanes: null
+    measured: { h2d_gbps: null, d2h_gbps: null, pinned: unknown }
+  - from: nvme0
+    to: sysram0
+    via: pcie
+    measured: { seq_read_gbps: null }
+
+envelope:
+  power_w: { rated: null, measured_idle: null, measured_load: null }
+  thermal_headroom: unknown

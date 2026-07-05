@@ -1,0 +1,65 @@
+schema_version: hwprofile/v1
+profile_id: apple_m5_max_137gb_detected
+provenance:
+  method: detect
+  detected_at: '2026-07-04T21:53:42Z'
+  tool_version: frontier-detect 0.1
+  os:
+    family: macos
+    version: '26.4'
+    kernel: 25.4.0
+nodes:
+- id: cpu0
+  kind: compute
+  class: cpu
+  vendor: apple
+  arch: arm64
+  model: Apple M5 Max
+  cores: 18
+  numa_nodes: 1
+- id: gpu0
+  kind: compute
+  class: gpu
+  vendor: apple
+  arch: apple_m5_max
+  model: Apple M5 Max
+  api:
+    metal: detected
+  rated:
+    fp16_tflops: null
+- id: unified0
+  kind: memory
+  class: unified
+  capacity_gb: 137.4
+  bandwidth_gbps:
+    rated: null
+    measured: null
+  pinnable: unknown
+- id: ssd0
+  kind: storage
+  class: internal_ssd
+  capacity_gb: 7998.5
+  measured:
+    seq_read_gbps: 19.38
+    rand_read_4k_iops: null
+    qd_used: 1
+    bench_tool: frontier-detect python bounded read (512MB, uncached, qd1)
+links:
+- from: unified0
+  to: gpu0
+  via: unified
+  available: true
+  measured:
+    h2d_gbps: null
+    d2h_gbps: null
+- from: ssd0
+  to: unified0
+  via: internal
+  measured:
+    seq_read_gbps: 19.38
+envelope:
+  power_w:
+    rated: null
+    measured_idle: null
+    measured_load: null
+  thermal_headroom: unknown

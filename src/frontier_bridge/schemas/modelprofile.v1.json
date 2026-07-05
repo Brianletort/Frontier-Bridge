@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Brianletort/Frontier-Bridge/schemas/modelprofile.v1.json",
+  "title": "Frontier Bridge Model Profile (modelprofile/v1)",
+  "description": "Behavioral traits of a model, not just sizes. Facts from upstream docs are 'claimed'; 'verified' requires a hash-pinned benchmark reproduced twice.",
+  "type": "object",
+  "required": ["schema_version", "model_id", "family", "architecture", "artifacts", "runtime_support", "memory_model"],
+  "properties": {
+    "schema_version": { "const": "modelprofile/v1" },
+    "model_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "family": { "type": "string" },
+    "license": {
+      "type": "object",
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "commercial_ok": { "enum": [true, false, "unknown"] }
+      }
+    },
+    "architecture": {
+      "type": "object",
+      "required": ["type", "params_total_b"],
+      "properties": {
+        "type": { "enum": ["moe", "dense"] },
+        "params_total_b": { "type": ["number", "null"] },
+        "params_active_b": { "type": ["number", "null"] },
+        "experts": {
+          "type": "object",
+          "properties": {
+            "routed_total": { "type": ["integer", "null"] },
+            "active_per_token": { "type": ["integer", "null"] },
+            "shared": { "type": ["integer", "null"] }
+          }
+        },
+        "attention": {
+          "type": "object",
+          "properties": {
+            "type": { "type": ["string", "null"] },
+            "kv_scaling": { "type": ["string", "null"] }
+          }
+        },
+        "context_max": {
+          "type": ["integer", "null"],
+          "description": "Claimed upstream; treat as a claim until benchmarked."
+        },
+        "spec_decode": {
+          "type": "object",
+          "properties": {
+            "mtp": { "enum": ["claimed_unverified", "verified", "unsupported", "unknown"] }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["format", "quant"],
+        "properties": {
+          "format": { "enum": ["gguf", "safetensors", "other"] },
+          "quant": { "type": "string" },
+          "size_gb": { "type": ["number", "null"] },
+          "source": { "type": ["string", "null"] },
+          "sha256": {
+            "type": ["string", "null"],
+            "description": "Null until pinned. Required for any artifact backing a verified result."
+          }
+        }
+      }
+    },
+    "runtime_support": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["runtime", "status"],
+        "properties": {
+          "runtime": { "type": "string" },
+          "status": { "enum": ["claimed", "verified"] },
+          "source": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "memory_model": {
+      "type": "object",
+      "description": "What the planner consumes. Values measured per quant, per runtime; null until measured.",
+      "properties": {
+        "dense_resident_gb": {
+          "type": "object",
+          "additionalProperties": { "type": ["number", "null"] }
+        },
+        "per_expert_gb": {
+          "type": "object",
+          "additionalProperties": { "type": ["number", "null"] }
+        },
+        "kv_per_1k_tokens_mb": { "type": ["number", "null"] }
+      }
+    },
+    "known_failure_modes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

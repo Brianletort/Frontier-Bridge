@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Brianletort/Frontier-Bridge/schemas/hwprofile.v1.json",
+  "title": "Frontier Bridge Hardware Profile (hwprofile/v1)",
+  "description": "A machine described as a graph of resources (nodes) and interconnects (links), measured not assumed. Unknown values are null or 'unknown', never guessed.",
+  "type": "object",
+  "required": ["schema_version", "profile_id", "provenance", "nodes", "links"],
+  "properties": {
+    "schema_version": { "const": "hwprofile/v1" },
+    "profile_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_]*$"
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["method"],
+      "properties": {
+        "method": { "enum": ["detect", "manual", "vendor-spec"] },
+        "detected_at": { "type": ["string", "null"] },
+        "tool_version": { "type": ["string", "null"] },
+        "os": {
+          "type": "object",
+          "properties": {
+            "family": { "enum": ["linux", "macos", "windows", "unknown"] },
+            "version": { "type": ["string", "null"] },
+            "kernel": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "links": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/link" }
+    },
+    "envelope": {
+      "type": "object",
+      "properties": {
+        "power_w": {
+          "type": "object",
+          "properties": {
+            "rated": { "type": ["number", "null"] },
+            "measured_idle": { "type": ["number", "null"] },
+            "measured_load": { "type": ["number", "null"] }
+          }
+        },
+        "thermal_headroom": { "$ref": "#/$defs/tristate" }
+      }
+    }
+  },
+  "$defs": {
+    "tristate": {
+      "description": "Capability presence: true, false, or 'unknown'. Never guessed.",
+      "enum": [true, false, "unknown"]
+    },
+    "nullableNumber": { "type": ["number", "null"] },
+    "ratedMeasured": {
+      "type": "object",
+      "properties": {
+        "rated": { "type": ["number", "null"] },
+        "measured": { "type": ["number", "null"] }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_]*$" },
+        "kind": { "enum": ["compute", "memory", "storage", "network"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "compute" } } },
+          "then": {
+            "properties": {
+              "class": { "enum": ["gpu", "cpu"] },
+              "vendor": { "type": ["string", "null"] },
+              "arch": { "type": ["string", "null"] },
+              "model": { "type": ["string", "null"] },
+              "cores": { "type": ["integer", "null"] },
+              "numa_nodes": { "type": ["integer", "null"] },
+              "api": {
+                "type": "object",
+                "description": "Detected compute APIs, e.g. { cuda: '13.x', sm: '...' } or { metal: '3' }."
+              },
+              "rated": {
+                "type": "object",
+                "properties": {
+                  "fp16_tflops": { "$ref": "#/$defs/nullableNumber" }
+                }
+              }
+            },
+            "required": ["class"]
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "memory" } } },
+          "then": {
+            "properties": {
+              "class": { "enum": ["device_local", "unified", "system", "cxl", "remote"] },
+              "capacity_gb": { "$ref": "#/$defs/nullableNumber" },
+              "bandwidth_gbps": { "$ref": "#/$defs/ratedMeasured" },
+              "attached_to": { "type": ["string", "null"] },
+              "pinnable": { "$ref": "#/$defs/tristate" },
+              "numa": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "node": { "type": "integer" },
+                    "gb": { "type": "number" }
+                  }
+                }
+              }
+            },
+            "required": ["class", "capacity_gb"]
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "storage" } } },
+          "then": {
+            "properties": {
+              "class": { "enum": ["nvme", "sata", "internal_ssd", "other"] },
+              "capacity_gb": { "$ref": "#/$defs/nullableNumber" },
+              "pcie": {
+                "type": "object",
+                "properties": {
+                  "gen": { "type": ["integer", "null"] },
+                  "lanes": { "type": ["integer", "null"] }
+                }
+              },
+              "measured": {
+                "type": "object",
+                "properties": {
+                  "seq_read_gbps": { "$ref": "#/$defs/nullableNumber" },
+                  "rand_read_4k_iops": { "$ref": "#/$defs/nullableNumber" },
+                  "qd_used": { "type": ["integer", "null"] },
+                  "bench_tool": { "type": ["string", "null"] }
+                }
+              }
+            },
+            "required": ["class"]
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "network" } } },
+          "then": {
+            "properties": {
+              "class": { "enum": ["ethernet", "infiniband", "other"] },
+              "rated_gbps": { "$ref": "#/$defs/nullableNumber" }
+            },
+            "required": ["class"]
+          }
+        }
+      ]
+    },
+    "link": {
+      "type": "object",
+      "required": ["from", "to", "via"],
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "via": { "enum": ["pcie", "gds", "unified", "nvlink", "ethernet", "internal", "other"] },
+        "gen": { "type": ["integer", "null"] },
+        "lanes": { "type": ["integer", "null"] },
+        "available": { "$ref": "#/$defs/tristate" },
+        "measured": {
+          "type": "object",
+          "properties": {
+            "h2d_gbps": { "$ref": "#/$defs/nullableNumber" },
+            "d2h_gbps": { "$ref": "#/$defs/nullableNumber" },
+            "seq_read_gbps": { "$ref": "#/$defs/nullableNumber" },
+            "latency_us": { "$ref": "#/$defs/nullableNumber" },
+            "pinned": { "$ref": "#/$defs/tristate" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+# DeepSeek V4 Flash, Q2 imatrix GGUF.
+# Parameter counts are NOT filled in here because we have not verified them upstream.
+# The planner will refuse to plan this model until params/sizes are verified or measured —
+# that refusal is intended behavior, not a bug.
+schema_version: modelprofile/v1
+model_id: deepseek-v4-flash
+family: deepseek
+license:
+  name: null
+  commercial_ok: unknown
+architecture:
+  type: moe
+  params_total_b: null            # verify upstream before filling in
+  params_active_b: null
+  experts:
+    routed_total: null
+    active_per_token: null
+    shared: null
+  attention:
+    type: null
+    kv_scaling: null
+  context_max: null
+  spec_decode:
+    mtp: unknown
+artifacts:
+  - format: gguf
+    quant: q2_imatrix
+    size_gb: null
+    source: null                  # pin exact GGUF URL at build time
+    sha256: null
+runtime_support:
+  - runtime: ds4
+    status: claimed
+    source: https://github.com/mitkox/ds4-zgx-gb10
+memory_model:
+  dense_resident_gb:
+    q2_imatrix: null
+  per_expert_gb:
+    q2_imatrix: null
+  kv_per_1k_tokens_mb: null
+known_failure_modes: []

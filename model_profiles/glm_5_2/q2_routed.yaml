@@ -1,0 +1,47 @@
+# GLM-5.2, Q2 routed-quant GGUF.
+# All architecture figures are CLAIMED from upstream docs (zai-org/GLM-5) — re-verify at
+# implementation time. Nulls stay null until measured; sha256 stays null until pinned.
+schema_version: modelprofile/v1
+model_id: glm-5.2
+family: glm
+license:
+  name: null
+  commercial_ok: unknown
+architecture:
+  type: moe
+  params_total_b: 744             # claimed upstream
+  params_active_b: 40             # claimed upstream
+  experts:
+    routed_total: null
+    active_per_token: null
+    shared: null
+  attention:
+    type: null
+    kv_scaling: null
+  context_max: 1000000            # claimed upstream
+  spec_decode:
+    mtp: claimed_unverified
+artifacts:
+  - format: gguf
+    quant: q2_routed
+    size_gb: null
+    source: https://huggingface.co/unsloth/GLM-5.2-GGUF
+    sha256: null
+runtime_support:
+  - runtime: ds4
+    status: claimed
+    source: https://github.com/mitkox/ds4-zgx-gb10
+  - runtime: ds4_zgx
+    status: claimed
+    source: https://github.com/mitkox/ds4-zgx-gb10
+  - runtime: llama_cpp
+    status: claimed
+    source: https://huggingface.co/unsloth/GLM-5.2-GGUF
+memory_model:
+  dense_resident_gb:
+    q2_routed: null
+  per_expert_gb:
+    q2_routed: null
+  kv_per_1k_tokens_mb: null
+known_failure_modes:
+  - q2_quality_degradation_unquantified
