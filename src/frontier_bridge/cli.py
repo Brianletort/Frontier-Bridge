@@ -30,6 +30,12 @@ from frontier_bridge.detect import detect_hardware
 from frontier_bridge.gguf import GGUFError, inspect_artifact
 from frontier_bridge.ingest import IngestError, ingest_repo
 from frontier_bridge.planner.engine import PlanError, generate_plan
+from frontier_bridge.provision import (
+    SetupError,
+    download_artifact,
+    ensure_runtime,
+    install_hint,
+)
 from frontier_bridge.results import fold_matrix, load_results, render_markdown
 from frontier_bridge.runner import (
     RunError,
@@ -387,6 +393,120 @@ def results_matrix(
         typer.echo(f"Wrote {output} ({len(rows)} row(s))")
     else:
         typer.echo(markdown)
+
+
+@app.command()
+def setup(
+    plan_file: Path = typer.Argument(..., help="A plan/v1 YAML file (from `frontier plan -o`)."),
+    dest: Path = typer.Option(
+        Path("models"), "--dest", help="Directory for downloaded artifacts."
+    ),
+    launch: bool = typer.Option(
+        True, "--launch/--no-launch", help="Start the runtime once the artifact is ready."
+    ),
+    auto_install: bool = typer.Option(
+        True,
+        "--auto-install/--no-auto-install",
+        help="Install llama.cpp via Homebrew when it is missing (other runtimes print their route).",
+    ),
+    verify: bool = typer.Option(
+        True, "--verify/--no-verify", help="Verify each shard's sha256 against the profile pin."
+    ),
+    allow_unpinned: bool = typer.Option(
+        False, "--allow-unpinned", help="Download shards that have no sha256 pin (discouraged)."
+    ),
+    port: Optional[int] = typer.Option(None, "--port", help="Override the plan's port at launch."),
+    ready_timeout: float = typer.Option(
+        600.0, "--ready-timeout", help="Seconds to wait for the endpoint at launch."
+    ),
+) -> None:
+    """One command from plan to running endpoint: install the runtime, download
+    the pinned artifact (resumable, hash-verified, space-checked), and launch.
+
+    Orchestration only — `frontier run` does the launching underneath.
+    """
+    plan_data = yaml.safe_load(plan_file.read_text(encoding="utf-8"))
+    if plan_data.get("schema_version") != "plan/v1":
+        typer.secho("error: not a plan/v1 file", fg=typer.colors.RED)
+        raise typer.Exit(code=2)
+    if plan_data.get("verdict") == "not_recommended":
+        typer.secho(
+            "This plan is a refusal (verdict: not_recommended). Refusing to set it up.",
+            fg=typer.colors.YELLOW,
+        )
+        for reason in plan_data.get("reasons", []):
+            typer.echo(f"  - {reason}")
+        raise typer.Exit(code=1)
+
+    engine = (plan_data.get("runtime") or {}).get("engine") or "?"
+    model_id, _, quant = (plan_data.get("inputs", {}).get("modelprofile", "")).partition("/")
+
+    # 1. Runtime.
+    typer.echo(f"[1/3] Runtime: {engine}")
+    if ensure_runtime(engine, echo=typer.echo, auto_install=auto_install):
+        typer.echo(f"  {engine} is available.")
+    else:
+        typer.secho(
+            f"  {engine} is not available; install it and rerun. "
+            f"({install_hint(engine).splitlines()[0]})",
+            fg=typer.colors.YELLOW,
+        )
+        raise typer.Exit(code=1)
+
+    # 2. Artifact.
+    typer.echo(f"[2/3] Artifact: {model_id}/{quant} -> {dest}")
+    root = find_repo_root()
+    entries = get_model_profiles(root, model_id)
+    profile = next(
+        (
+            e.data
+            for e in entries
+            if any(a.get("quant") == quant for a in e.data.get("artifacts", []))
+        ),
+        None,
+    )
+    if profile is None:
+        typer.secho(f"error: no model profile found for {model_id}/{quant}", fg=typer.colors.RED)
+        raise typer.Exit(code=2)
+    try:
+        model_path = download_artifact(
+            profile,
+            quant,
+            dest,
+            echo=typer.echo,
+            verify=verify,
+            allow_unpinned=allow_unpinned,
+        )
+    except SetupError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+    typer.echo(f"  Artifact ready: {model_path}")
+
+    # 3. Launch.
+    if not launch:
+        typer.echo(
+            f"[3/3] Skipped launch (--no-launch). Run it later with:\n"
+            f"  frontier run {plan_file} --model-path {model_path}"
+        )
+        return
+    typer.echo("[3/3] Launching...")
+    try:
+        # Shards were verified at download time; no need to re-hash here.
+        spec = build_launch(plan_data, str(model_path), port_override=port)
+        process = launch_and_wait(spec, echo=typer.echo, ready_timeout_s=ready_timeout)
+    except RunError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+    typer.echo(
+        f"OpenAI-compatible endpoint live at http://127.0.0.1:{spec.port}/v1 "
+        f"(engine: {spec.engine}). Ctrl-C to stop."
+    )
+    try:
+        process.wait()
+    except KeyboardInterrupt:
+        typer.echo("Stopping runtime...")
+        process.terminate()
+        process.wait(timeout=30)
 
 
 @app.command()
