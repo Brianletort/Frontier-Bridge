@@ -28,6 +28,7 @@ from typing import Any
 
 from frontier_bridge.adapters import launch_command, select_runtime
 from frontier_bridge.catalog import get_hardware_profile, get_model_profiles
+from frontier_bridge.results import fold_matrix, load_results
 
 WORKLOADS = {
     "chat",
@@ -106,6 +107,26 @@ def _pick_quant(entries: list[dict[str, Any]], forced: str | None) -> tuple[dict
             if _quant_family(quant) == preference:
                 return data, artifact
     return available[0][1], available[0][2]
+
+
+def _lookup_verified_result(
+    repo_root: Path, hardware_id: str, modelprofile: str, workload: str
+) -> dict[str, Any] | None:
+    """Best verified matrix row for this exact combination, or None."""
+    rows = fold_matrix(load_results(repo_root))
+    for row in rows:
+        if (
+            row.status == "verified"
+            and row.hwprofile == hardware_id
+            and row.modelprofile == modelprofile
+            and row.workload == workload
+        ):
+            return {
+                "decode_tps": row.decode_tps,
+                "result_id": row.result_id,
+                "usability": row.usability,
+            }
+    return None
 
 
 def generate_plan(
@@ -363,10 +384,22 @@ def generate_plan(
     # Anything built on estimates or streaming is experimental, never recommended.
     verdict = "experimental" if (size_estimated or not fits_in_memory) else "recommended"
 
+    # Expected values are filled from prior verified benchmark results for the
+    # same (hardware, model/quant, workload) — never hand-typed. Unmeasured
+    # combinations stay null/unrated.
     expected: dict[str, Any] = {
         "decode_tps": {"p50": None, "source": None},
         "usability_class": "unrated",
     }
+    prior = _lookup_verified_result(
+        repo_root, hardware_id, f"{model_id}/{chosen_quant}", workload
+    )
+    if prior is not None:
+        expected["decode_tps"] = {
+            "p50": prior["decode_tps"],
+            "source": prior["result_id"],
+        }
+        expected["usability_class"] = prior["usability"]
     if streaming is not None:
         expected["streaming"] = streaming
 

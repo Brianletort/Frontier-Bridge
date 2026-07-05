@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -19,6 +20,7 @@ from frontier_bridge.catalog import (
 )
 from frontier_bridge.bench.collectors import start_collectors, stop_and_report
 from frontier_bridge.bench.engine import SUITES, build_result, load_suite, plan_hash, run_suite
+from frontier_bridge.bench.experiments import append_jsonl, ladder_rung, sweep_point
 from frontier_bridge.detect import detect_hardware
 from frontier_bridge.gguf import GGUFError, inspect_artifact
 from frontier_bridge.planner.engine import PlanError, generate_plan
@@ -41,6 +43,11 @@ catalog_app = typer.Typer(help="List committed hardware and model profiles.", no
 app.add_typer(catalog_app, name="catalog")
 results_app = typer.Typer(help="Fold benchmark results into reports.", no_args_is_help=True)
 app.add_typer(results_app, name="results")
+bench_app = typer.Typer(
+    help="Benchmark a running endpoint, or run experiment harnesses.",
+    invoke_without_command=True,
+)
+app.add_typer(bench_app, name="bench")
 
 
 @app.callback(invoke_without_command=True)
@@ -336,9 +343,12 @@ def run(
         process.wait(timeout=30)
 
 
-@app.command()
+@bench_app.callback()
 def bench(
-    plan_file: Path = typer.Option(..., "--plan", help="The plan/v1 YAML this run executes."),
+    ctx: typer.Context,
+    plan_file: Optional[Path] = typer.Option(
+        None, "--plan", help="The plan/v1 YAML this run executes."
+    ),
     suite: str = typer.Option(
         "chat", "--suite", help=f"Bundled suite ({', '.join(SUITES)}) or a JSONL path."
     ),
@@ -362,7 +372,15 @@ def bench(
     Start the runtime first (e.g. `frontier run <plan> --model-path ...`), then
     point bench at its port. Status is 'claimed' unless all four pins are set
     and two reproductions are listed — the tool enforces the verified rule.
+
+    Subcommands (sweep-offload, context-ladder) are experiment harnesses that
+    launch llama-server themselves.
     """
+    if ctx.invoked_subcommand is not None:
+        return
+    if plan_file is None:
+        typer.secho("error: --plan is required (or use a subcommand)", fg=typer.colors.RED)
+        raise typer.Exit(code=2)
     plan_data = yaml.safe_load(plan_file.read_text(encoding="utf-8"))
     if plan_data.get("schema_version") != "plan/v1":
         typer.secho("error: --plan must be a plan/v1 file", fg=typer.colors.RED)
@@ -435,3 +453,54 @@ def bench(
         f"p95={result['metrics']['token_latency_ms']['p95']}ms | status={result['status']}"
     )
     typer.echo(f"Wrote {out_path}")
+
+
+@bench_app.command("sweep-offload")
+def bench_sweep_offload(
+    model: Path = typer.Option(..., "--model", help="GGUF path (first shard for multi-part)."),
+    values: str = typer.Option(..., "--values", help="Comma-separated --n-cpu-moe values to sweep."),
+    ctx_tokens: int = typer.Option(8192, "--ctx", help="Context size for every point."),
+    port: int = typer.Option(8899, "--port", help="Port llama-server binds per point."),
+    output: Path = typer.Option(..., "--output", help="JSONL output (results/experiments/...)."),
+    extra: str = typer.Option("", "--extra", help="Extra llama-server args, space-separated."),
+) -> None:
+    """Sweep llama.cpp --n-cpu-moe values to find the working-set stability boundary.
+
+    Each point: launch llama-server, health-check, short decode probes, teardown,
+    one JSONL record. This is an experiment harness, not a benchmark — probes are
+    short on purpose; interesting points get full `frontier bench` runs afterwards.
+    """
+    extra_args = extra.split() if extra else []
+    for value in [int(v) for v in values.split(",")]:
+        typer.echo(f"--- n-cpu-moe={value}")
+        record = sweep_point(str(model), value, ctx_tokens, port, extra_args)
+        typer.echo(json.dumps(record))
+        append_jsonl(output, record)
+        time.sleep(5)  # let memory settle between points
+    typer.echo(f"Wrote {output}")
+
+
+@bench_app.command("context-ladder")
+def bench_context_ladder(
+    model: Path = typer.Option(..., "--model", help="GGUF path (first shard for multi-part)."),
+    rungs: str = typer.Option(..., "--rungs", help="Comma-separated context sizes."),
+    n_cpu_moe: int = typer.Option(..., "--n-cpu-moe", help="Offload value for every rung."),
+    port: int = typer.Option(8899, "--port", help="Port llama-server binds per rung."),
+    kv_quant: Optional[str] = typer.Option(
+        None, "--kv-quant", help="KV cache quant for -ctk/-ctv, e.g. q8_0."
+    ),
+    output: Path = typer.Option(..., "--output", help="JSONL output (results/experiments/...)."),
+) -> None:
+    """Context ladder: measure KV footprint, long-context TTFT/decode, and needle
+    retrieval at increasing context sizes.
+
+    Each rung: server start → health → KV size from the init log → needle probe
+    at ~70% of ctx → teardown → one JSONL record.
+    """
+    for rung_ctx in [int(v) for v in rungs.split(",")]:
+        typer.echo(f"--- ctx={rung_ctx} kv={kv_quant or 'f16'}")
+        record = ladder_rung(str(model), rung_ctx, n_cpu_moe, port, kv_quant)
+        typer.echo(json.dumps(record))
+        append_jsonl(output, record)
+        time.sleep(5)
+    typer.echo(f"Wrote {output}")

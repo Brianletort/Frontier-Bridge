@@ -89,6 +89,25 @@ def test_llama_cpp_offload_computed_from_measured_sizes(repo_root):
         assert 1 <= n2 <= 10
 
 
+def test_expected_filled_from_verified_results_never_hand_typed(repo_root):
+    """The M5 Max DeepSeek Q2 chat combination has committed verified results:
+    the plan's expected block must cite them; unmeasured combos stay null."""
+    plan = generate_plan(
+        repo_root, "deepseek-v4-flash", "apple_m5_max_137gb_detected", "chat", 8192,
+        quant="q2_imatrix",
+    )
+    expected = plan["expected"]
+    assert expected["decode_tps"]["p50"] is not None
+    assert expected["decode_tps"]["source"].startswith("m5max-dsv4q2-chat")
+    assert expected["usability_class"] == "interactive"
+
+    unmeasured = generate_plan(
+        repo_root, "deepseek-v4-flash", "gb10_128gb", "chat", 8192, quant="q2_imatrix"
+    )
+    assert unmeasured["expected"]["decode_tps"]["p50"] is None
+    assert unmeasured["expected"]["usability_class"] == "unrated"
+
+
 def test_deepseek_q2_fits_m5_max_and_is_recommended(repo_root):
     """107GB measured Q2 in 128GB unified memory: a real, measured 'yes'."""
     plan = generate_plan(
