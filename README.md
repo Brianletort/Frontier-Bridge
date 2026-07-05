@@ -169,12 +169,14 @@ The v0.1 targets: **GLM-5.2** (Q2/Q4 routed GGUF) and **DeepSeek V4 Flash** (Q2/
 
 | Hardware | Model | Quant | Mode | Context (target) | Status |
 |---|---|---|---|---|---|
+| M5 Max 137 GB (measured) | DeepSeek V4 Flash | Q2_K-XL | Metal + CPU-MoE offload | 8K measured | **verified — interactive (chat), agent_capable (coding)**: 7.4 tps decode, p95 168 ms, reproduced 2x |
 | RTX 6000 96 GB / 64 GB RAM | GLM-5.2 | Q2 routed | VRAM+RAM+SSD | 32K–128K | unrated (target) |
 | GB10 128 GB | GLM-5.2 | Q2/Q4 routed | unified+SSD | 32K–128K | unrated (target) |
 | M5 Max 128 GB | GLM-5.2 | Q4 GGUF | Metal+SSD | 32K | unrated (target) |
-| M5 Max 128 GB | DeepSeek V4 Flash | Q2 | resident/SSD | 100K+ | unrated (target) |
 | RTX 5090 32 GB + 128 GB RAM | *(community profile wanted)* | — | hybrid VRAM/RAM | — | open gap |
 | Strix Halo 128 GB | *(community profile wanted)* | — | unified+SSD | — | open gap |
+
+First verified rows landed 2026-07-05: a 284B-parameter MoE running as a usable coding agent on a single Apple workstation, every number pinned and reproduced twice ([results/verified/](results/verified/)).
 
 Additional MoE families (Qwen, MiniMax, Kimi, and newer GLM/DeepSeek releases) follow the same profile format. The live scoreboard — generated from committed `benchresult/v1` files, never hand-edited — is [docs/compatibility_matrix.md](docs/compatibility_matrix.md).
 

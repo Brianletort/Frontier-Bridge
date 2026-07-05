@@ -1,0 +1,70 @@
+{
+  "schema_version": "benchresult/v1",
+  "result_id": "m5max-dsv4q2-coding-run1",
+  "measured_at": "2026-07-05T06:47:39Z",
+  "pins": {
+    "plan_hash": "a5c605b363a0a9c1e34b2b7c89021534ad30e6e39bf6e2939988249a6d3f1a4b",
+    "model_sha256": "5a952f1e26bc654df36a8e654a97a5fde0bdaec81b863c7884f96b6da868832c",
+    "runtime_commit": "b9870-2d973636e",
+    "hwprofile_id": "apple_m5_max_137gb_detected"
+  },
+  "metrics": {
+    "ttft_ms": 2982.72,
+    "prefill_tps": 15.87,
+    "decode_tps": 7.35,
+    "token_latency_ms": {
+      "p50": 130.49,
+      "p95": 167.03,
+      "p99": 238.2
+    },
+    "peak_vram_gb": null,
+    "peak_ram_gb": 77.64,
+    "ssd_read_gbps": null,
+    "ssd_total_read_gb": 93.69,
+    "expert_cache_hit_rate": null,
+    "context_len_tokens": 8192
+  },
+  "workload_tasks": [
+    {
+      "task": "code-function",
+      "passed": true,
+      "notes": null
+    },
+    {
+      "task": "code-bugfix",
+      "passed": true,
+      "notes": null
+    },
+    {
+      "task": "code-explain",
+      "passed": true,
+      "notes": null
+    },
+    {
+      "task": "code-refactor",
+      "passed": true,
+      "notes": null
+    },
+    {
+      "task": "code-test",
+      "passed": true,
+      "notes": null
+    },
+    {
+      "task": "code-multistep",
+      "passed": true,
+      "notes": null
+    }
+  ],
+  "environment": {
+    "os": "Darwin 25.4.0",
+    "notes": "suite=coding_agent; client-side SSE chunk timing; power_w_avg=32.5"
+  },
+  "reproductions": [],
+  "status": "claimed",
+  "subject": {
+    "modelprofile": "deepseek-v4-flash/q2_imatrix",
+    "workload": "coding_agent"
+  },
+  "usability_suggested": "agent_capable"
+}

@@ -1,0 +1,53 @@
+schema_version: plan/v1
+plan_id: apple-m5-max-137gb-detected-deepseek-v4-flash-q2-imatrix-chat-8192
+inputs:
+  hwprofile: apple_m5_max_137gb_detected
+  modelprofile: deepseek-v4-flash/q2_imatrix
+  workload: chat
+  context_budget: 8192
+verdict: recommended
+placement:
+  resident:
+    dense_core: unified0
+    router: unified0
+    shared_experts: unified0
+  tiered:
+    routed_experts:
+      l0:
+        node: unified0
+        budget_gb: 96.3
+        policy: layer_aware_lru
+        expert_layer_capacity: 10582
+      l2:
+        node: ssd0
+        mode: stream_on_miss
+    kv_cache:
+      hot:
+        node: unified0
+        window_tokens: 8192
+      cold:
+        node: ssd0
+        persist: true
+phases:
+  prefill:
+    batch: auto
+    notes: throughput-bound; expert misses tolerable
+  decode:
+    target_p95_ms: null
+    prefetch: static_hotlist
+    notes: miss-sensitive; protect the active path
+runtime:
+  engine: llama_cpp
+  build: b9870-2d973636e
+  # Planner suggested --n-cpu-moe 2 from headroom math; empirically the Metal
+  # working-set limit required 30 (14 crashed with kIOGPUCommandBufferCallback
+  # ErrorOutOfMemory during load, 24 died on first request). Exact command that
+  # runs stably, recorded per plan/v1 rules:
+  launch: 'llama-server -m <GGUF_PATH> -c 8192 -np 1 --host 127.0.0.1 --port 8899
+    -ngl 999 --n-cpu-moe 30 --jinja'
+expected:
+  decode_tps:
+    p50: null
+    source: null
+  usability_class: unrated
+risks: []

@@ -91,8 +91,11 @@ def verify_artifact(model_path: Path, model_profile: dict[str, Any], quant: str)
     return f"{model_path.name} sha256 verified"
 
 
-def build_launch(plan: dict[str, Any], model_path: str) -> LaunchSpec:
-    """Substitute the artifact path into the plan's recorded launch command."""
+def build_launch(
+    plan: dict[str, Any], model_path: str, port_override: int | None = None
+) -> LaunchSpec:
+    """Substitute the artifact path (and optionally the port) into the plan's
+    recorded launch command."""
     runtime = plan.get("runtime") or {}
     command: str = runtime.get("launch") or ""
     if not command:
@@ -104,8 +107,22 @@ def build_launch(plan: dict[str, Any], model_path: str) -> LaunchSpec:
     port = 8080
     for i, arg in enumerate(args):
         if arg in ("--port", "-p") and i + 1 < len(args) and args[i + 1].isdigit():
+            if port_override is not None:
+                args[i + 1] = str(port_override)
             port = int(args[i + 1])
+    command = shlex.join(args)
     return LaunchSpec(command=command, args=args, port=port, engine=runtime.get("engine", "?"))
+
+
+def port_in_use(port: int) -> bool:
+    """True when something already answers HTTP on the port (foreign service)."""
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2):
+            return True
+    except urllib.error.HTTPError:
+        return True  # answered with an error status: still occupied
+    except (urllib.error.URLError, OSError, TimeoutError):
+        return False
 
 
 def wait_for_endpoint(port: int, timeout_s: float = 600.0, interval_s: float = 2.0) -> bool:
@@ -139,15 +156,32 @@ def launch_and_wait(
     echo: Callable[[str], None],
     ready_timeout_s: float = 600.0,
 ) -> subprocess.Popen:
-    """Start the runtime and block until the endpoint is up (or raise)."""
+    """Start the runtime and block until the endpoint is up (or raise).
+
+    Fails fast when the port is already occupied by another service, and when
+    the runtime process dies during startup (bad flags, bind failure, OOM).
+    """
+    if port_in_use(spec.port):
+        raise RunError(
+            f"port {spec.port} is already in use by another service. "
+            "Pass --port to use a free one."
+        )
     echo(f"Launching: {spec.command}")
     process = subprocess.Popen(spec.args)
     echo(f"Runtime pid {process.pid}; waiting for http://127.0.0.1:{spec.port}/v1/models ...")
-    if not wait_for_endpoint(spec.port, timeout_s=ready_timeout_s):
-        process.terminate()
-        raise RunError(
-            f"endpoint did not become ready within {int(ready_timeout_s)}s; "
-            "runtime terminated"
-        )
-    echo("Endpoint ready.")
-    return process
+    deadline = time.monotonic() + ready_timeout_s
+    while time.monotonic() < deadline:
+        exit_code = process.poll()
+        if exit_code is not None:
+            raise RunError(
+                f"runtime exited with code {exit_code} during startup — "
+                "see its output above"
+            )
+        if probe_endpoint(spec.port) is not None:
+            echo("Endpoint ready.")
+            return process
+        time.sleep(2.0)
+    process.terminate()
+    raise RunError(
+        f"endpoint did not become ready within {int(ready_timeout_s)}s; runtime terminated"
+    )

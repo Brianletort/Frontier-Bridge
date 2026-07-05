@@ -198,6 +198,11 @@ def generate_plan(
     memory_total_gb = primary_gb + system_gb
     is_moe = arch.get("type") == "moe"
 
+    # Documented headroom margins. Apple unified memory caps GPU allocations
+    # near the Metal working-set limit (~75% of capacity, observed empirically
+    # on the M5 Max — see known_failure_modes); discrete VRAM gets 0.9.
+    primary_headroom = 0.75 if primary_pool.get("class") == "unified" else 0.9
+
     fits_in_memory = size_gb <= memory_total_gb * 0.9  # documented headroom margin
     can_stream = is_moe and storage_pool is not None
     if not fits_in_memory and not can_stream:
@@ -231,7 +236,7 @@ def generate_plan(
     # --- Expert-tier budgeting --------------------------------------------
     l0_budget = None
     if dense_floor_gb is not None and primary_gb:
-        l0_budget = max(round(primary_gb * 0.9 - dense_floor_gb, 1), 0)
+        l0_budget = max(round(primary_gb * primary_headroom - dense_floor_gb, 1), 0)
 
     def _expert_capacity(budget_gb: float | None) -> int | None:
         """How many (expert, layer) slices fit in a tier — measured units only."""

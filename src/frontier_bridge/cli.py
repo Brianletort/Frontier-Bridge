@@ -274,6 +274,9 @@ def run(
     ready_timeout: float = typer.Option(
         600.0, "--ready-timeout", help="Seconds to wait for the endpoint before giving up."
     ),
+    port: Optional[int] = typer.Option(
+        None, "--port", help="Override the port in the plan's launch command."
+    ),
 ) -> None:
     """Execute a plan: verify the artifact, launch the runtime, health-check the endpoint.
 
@@ -312,7 +315,7 @@ def run(
             typer.echo("Verifying artifact sha256 (large files take a while)...")
             typer.echo(verify_artifact(model_path, profile, quant))
 
-        spec = build_launch(plan_data, str(model_path))
+        spec = build_launch(plan_data, str(model_path), port_override=port)
         if dry_run:
             typer.echo(spec.command)
             raise typer.Exit()

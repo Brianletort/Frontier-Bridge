@@ -81,7 +81,12 @@ def stream_completion(
                 choices = event.get("choices") or []
                 delta_text = ""
                 if choices:
-                    delta_text = (choices[0].get("delta") or {}).get("content") or ""
+                    delta = choices[0].get("delta") or {}
+                    # Reasoning models stream thinking as reasoning_content;
+                    # count it for timing and checks — the model produced it.
+                    delta_text = (delta.get("content") or "") + (
+                        delta.get("reasoning_content") or ""
+                    )
                 if not delta_text and not choices:
                     continue
                 if timing.ttft_ms is None:
