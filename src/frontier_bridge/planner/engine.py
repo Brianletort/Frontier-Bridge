@@ -22,6 +22,7 @@ Heuristics used when measured data is missing (always disclosed in the plan):
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Any
 
@@ -294,16 +295,19 @@ def generate_plan(
     # streams from storage. bytes/token = active_per_token x n_moe_layers x
     # per-(expert,layer) size. Computed only from measured values — when any
     # input is unmeasured this stays None and a risk is recorded instead.
+    routed_total = (arch.get("experts") or {}).get("routed_total")
+    routed_total_gb = (
+        (memory_model.get("measurement") or {}).get("routed_experts_gb") or {}
+    ).get(chosen_quant)
+    n_moe_layers: int | None = None
+    if per_expert_gb and routed_total and routed_total_gb:
+        n_moe_layers = round(routed_total_gb / (per_expert_gb * routed_total))
+
     streaming: dict[str, Any] | None = None
     if not fits_in_memory and per_expert_gb:
-        routed_total = (arch.get("experts") or {}).get("routed_total")
         active_per_token = (arch.get("experts") or {}).get("active_per_token")
-        routed_total_gb = (
-            (memory_model.get("measurement") or {}).get("routed_experts_gb") or {}
-        ).get(chosen_quant)
         ssd_bw = ((storage_pool or {}).get("measured") or {}).get("seq_read_gbps")
-        if routed_total and active_per_token and routed_total_gb:
-            n_moe_layers = round(routed_total_gb / (per_expert_gb * routed_total))
+        if n_moe_layers and active_per_token:
             worst_case_gb_per_token = round(
                 active_per_token * n_moe_layers * per_expert_gb, 2
             )
@@ -316,6 +320,18 @@ def generate_plan(
                 ),
                 "source": "computed_from_measured_gguf_headers_and_links",
             }
+
+    # llama.cpp expert offload: how many MoE layers' experts must stay off-GPU,
+    # from the measured routed size vs the L0 budget.
+    n_cpu_moe: int | None = None
+    if (
+        n_moe_layers
+        and routed_total_gb
+        and l0_budget is not None
+        and routed_total_gb > l0_budget
+    ):
+        overflow_fraction = 1 - (l0_budget / routed_total_gb)
+        n_cpu_moe = min(n_moe_layers, max(1, math.ceil(n_moe_layers * overflow_fraction)))
 
     # --- Risk annotation -----------------------------------------------------
     risks: list[str] = []
@@ -367,7 +383,9 @@ def generate_plan(
         "runtime": {
             "engine": engine,
             "build": None,
-            "launch": launch_command(engine, model_id, chosen_quant, context_budget),
+            "launch": launch_command(
+                engine, model_id, chosen_quant, context_budget, n_cpu_moe=n_cpu_moe
+            ),
         },
         "expected": expected,
         "risks": risks,

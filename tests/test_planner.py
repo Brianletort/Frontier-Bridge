@@ -66,6 +66,25 @@ memory_model: {}
     assert "placement" not in plan
 
 
+def test_llama_cpp_offload_computed_from_measured_sizes(repo_root):
+    """GLM Q4: 446GB routed vs ~115GB usable unified -> most MoE layers offload."""
+    plan = generate_plan(
+        repo_root, "glm-5.2", "apple_m5_max_137gb_detected", "coding_agent", 32768,
+        quant="q4_routed", engine_override="llama_cpp",
+    )
+    launch = plan["runtime"]["launch"]
+    assert "--n-cpu-moe" in launch
+    n = int(launch.split("--n-cpu-moe")[1].split()[0])
+    assert 50 <= n <= 79  # bounded by the 79 measured MoE layers
+
+    # A model that fits resident gets no offload flag.
+    fits = generate_plan(
+        repo_root, "deepseek-v4-flash", "apple_m5_max_137gb_detected", "chat", 16384,
+        quant="q2_imatrix", engine_override="llama_cpp",
+    )
+    assert "--n-cpu-moe" not in fits["runtime"]["launch"]
+
+
 def test_deepseek_q2_fits_m5_max_and_is_recommended(repo_root):
     """107GB measured Q2 in 128GB unified memory: a real, measured 'yes'."""
     plan = generate_plan(

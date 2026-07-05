@@ -54,9 +54,20 @@ def select_runtime(hw: dict[str, Any], claimed_runtimes: list[str | None]) -> st
     return None
 
 
-def launch_command(engine: str, model_id: str, quant: str, context_budget: int) -> str:
+def launch_command(
+    engine: str,
+    model_id: str,
+    quant: str,
+    context_budget: int,
+    n_cpu_moe: int | None = None,
+) -> str:
     """Generate the launch command for a runtime. <GGUF_PATH> is a placeholder
-    for the hash-verified artifact path."""
+    for the hash-verified artifact path.
+
+    n_cpu_moe: number of MoE layers whose experts stay off-GPU, computed by the
+    planner from the L0 tier budget and measured per-expert sizes (llama.cpp's
+    `--n-cpu-moe`). None means the model fits without expert offload.
+    """
     if engine in ("ds4", "ds4_zgx"):
         return (
             f"ds4 serve --model <GGUF_PATH> --ctx {context_budget} "
@@ -64,10 +75,16 @@ def launch_command(engine: str, model_id: str, quant: str, context_budget: int) 
             f"# {engine} for {model_id} {quant}; verify flags against ds4 docs"
         )
     if engine == "llama_cpp":
+        offload = f" --n-cpu-moe {n_cpu_moe}" if n_cpu_moe else ""
+        note = (
+            "n-cpu-moe from plan L0 budget and measured expert sizes"
+            if n_cpu_moe
+            else "fits resident per measured sizes"
+        )
         return (
             f"llama-server -m <GGUF_PATH> -c {context_budget} --host 127.0.0.1 --port 8080 "
-            f"-ngl 999  "
-            f"# llama.cpp for {model_id} {quant}; tune -ngl/--n-cpu-moe per plan tiers"
+            f"-ngl 999{offload}  "
+            f"# llama.cpp for {model_id} {quant}; {note}"
         )
     if engine == "mlx":
         return (
