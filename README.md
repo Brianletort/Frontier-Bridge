@@ -17,7 +17,7 @@ Profile the machine. Plan the tiers. Get a launch command — or an honest refus
 
 `v0.1-dev` — schemas and CLI shipped · verified benchmark rows: 0, first rows in progress ([roadmap](docs/roadmap.md))
 
-[Quickstart](#quickstart) · [See it work](#see-it-work) · [How it works](#how-it-works) · [Status](#status) · [Honest limits](#honest-limits) · [Matrix](#compatibility-matrix) · [Vision](#vision) · [Contributing](#contributing)
+[Quickstart](#quickstart) · [Demo](#demo) · [How it works](#how-it-works) · [Architecture](docs/architecture.md) · [Status](#status) · [Honest limits](#honest-limits) · [Matrix](#compatibility-matrix) · [FAQ](docs/faq.md) · [Contributing](#contributing)
 
 </div>
 
@@ -42,6 +42,14 @@ frontier plan deepseek-v4-flash --quant q2_imatrix \
 ```
 
 No supported detect path for your OS yet? `frontier catalog hardware` lists committed reference profiles (`rtx6000_96gb_64ram`, `gb10_128gb`, `m5_max_128gb`) you can plan against immediately.
+
+## Demo
+
+The loop below is the real CLI on the M5 Max — recorded with [VHS](docs/demo.tape), reproducible from the committed tape. The full YAML these commands produce is in [See it work](#see-it-work):
+
+<div align="center">
+<img src="docs/assets/demo.gif" alt="Terminal demo: frontier detect measures the machine, frontier plan emits a recommended tiered plan, and an impossible request gets an honest refusal" width="92%" />
+</div>
 
 `detect` and `plan` run in seconds with nothing downloaded. The full loop — download a pinned GGUF, `frontier run`, `frontier bench`, reproduce twice, fold into the matrix — is the [benchmark playbook](docs/benchmark_playbook.md). Model artifacts are 107–467 GB; the planner tells you *before* you download whether your machine is worth the bandwidth. (On Apple Silicon the planner defaults to the ds4 engine; pass `--engine llama_cpp` if that's what you have installed.)
 
@@ -129,6 +137,8 @@ flowchart LR
 
 Frontier Bridge is **not another inference runtime**. Plans emit exact launch commands for llama.cpp, ds4 (an SSD-expert-streaming runtime for Apple Metal), MLX, vLLM, and SGLang — launch-command wrappers today, not deep integrations; TensorRT-LLM and KTransformers are planned ([adapter status](runtime_adapters/README.md)) — and the harness measures the result. Prefill and decode are planned separately from day one: prefill is throughput-bound and tolerates expert-cache misses; decode is miss-sensitive and gets latency targets and prefetch policy of its own. Protecting the interactive path is where usefulness lives.
 
+Want the long read — the planner's decision path, the worked worst-case streaming math, topology diagrams for all three reference machines? [docs/architecture.md](docs/architecture.md).
+
 ## Status
 
 The measurement pipeline is built and tested; the first verified rows are the current milestone ([roadmap](docs/roadmap.md)). What works today:
@@ -151,6 +161,8 @@ The measurement pipeline is built and tested; the first verified rows are the cu
 - We do not make any frontier model run on consumer hardware. The goal is to make the best possible use of available infrastructure — turning models from impossible into runnable, and from runnable into useful, is the hypothesis the benchmarks exist to test.
 - Every number in this repo carries its provenance: **measured** applies to hardware telemetry we ran ourselves, **claimed** to upstream model metadata, and **verified** only to benchmark rows backed by pinned hashes and two reproductions ([GOVERNANCE.md](GOVERNANCE.md)). Anything we can't support is `null` — we never guess.
 
+More hard questions — SSD endurance, Q2 quality, why a data center company sponsors this — get straight answers in the [FAQ](docs/faq.md).
+
 ## Compatibility matrix
 
 The v0.1 targets: **GLM-5.2** (Q2/Q4 routed GGUF) and **DeepSeek V4 Flash** (Q2/Q4 imatrix GGUF) across four hardware classes. Usability ratings, in order: `unrated → runs → usable → interactive → agent_capable`, plus `not_recommended` as a first-class result. No row moves past `unrated` until a hash-pinned `benchresult/v1` file backs it, reproduced twice. Context ranges are targets, not results:
@@ -164,7 +176,7 @@ The v0.1 targets: **GLM-5.2** (Q2/Q4 routed GGUF) and **DeepSeek V4 Flash** (Q2/
 | RTX 5090 32 GB + 128 GB RAM | *(community profile wanted)* | — | hybrid VRAM/RAM | — | open gap |
 | Strix Halo 128 GB | *(community profile wanted)* | — | unified+SSD | — | open gap |
 
-Additional MoE families (Qwen, MiniMax, Kimi, and newer GLM/DeepSeek releases) follow the same profile format.
+Additional MoE families (Qwen, MiniMax, Kimi, and newer GLM/DeepSeek releases) follow the same profile format. The live scoreboard — generated from committed `benchresult/v1` files, never hand-edited — is [docs/compatibility_matrix.md](docs/compatibility_matrix.md).
 
 ## Vision
 
@@ -189,7 +201,7 @@ Frontier Bridge is sponsored by [Digital Realty](https://www.digitalrealty.com/)
 
 ## Contributing
 
-The most valuable early contributions are **hardware profiles from machines we don't have** (RTX 5090 + 128 GB DDR and Strix Halo are open gaps) and **benchmark results that reproduce**. Start with [CONTRIBUTING.md](CONTRIBUTING.md); the results-integrity rule is in [GOVERNANCE.md](GOVERNANCE.md).
+The most valuable early contributions are **hardware profiles from machines we don't have** (RTX 5090 + 128 GB DDR and Strix Halo are open gaps) and **benchmark results that reproduce**. Start with [CONTRIBUTING.md](CONTRIBUTING.md); the results-integrity rule is in [GOVERNANCE.md](GOVERNANCE.md). Issue templates exist for [volunteering a profile](https://github.com/Brianletort/Frontier-Bridge/issues/new?template=good_first_profile.md) and [reporting hardware quirks](https://github.com/Brianletort/Frontier-Bridge/issues/new?template=hardware_quirk.md), and [Discussions](https://github.com/Brianletort/Frontier-Bridge/discussions) is open — first thread: which machine should we profile next?
 
 ```text
 schemas/              JSON Schema files for the four v1 schemas
