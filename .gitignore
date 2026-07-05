@@ -20,3 +20,4 @@ hardware_profiles/local/
 # Editors
 .idea/
 .vscode/
+results/local/

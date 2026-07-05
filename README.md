@@ -88,14 +88,17 @@ That refusal is the product working as designed. A planner you can trust when it
 
 | Capability | State |
 |---|---|
-| Four versioned schemas (`hwprofile`, `modelprofile`, `plan`, `benchresult` — [RFC 0001](rfcs/0001-resource-graph-schemas.md)) | Ratified, frozen at v1 |
-| `frontier detect` | Live on macOS/Apple Silicon; Linux/NVIDIA path written and fixture-tested, pending real hardware |
-| `frontier plan` (rules-based planner v0) | Working: fit check, tiered placement, runtime selection, graceful refusal |
-| `frontier validate` / `frontier catalog` | Working across all committed profiles |
-| Runtime adapters (ds4, ds4-zgx, llama.cpp, MLX, vLLM, SGLang) | Launch-command wrappers ([status](runtime_adapters/README.md)) |
-| Test suite | 29 tests, all passing |
+| Four versioned schemas (`hwprofile`, `modelprofile`, `plan`, `benchresult` — [RFC 0001](rfcs/0001-resource-graph-schemas.md)) | Ratified, frozen at v1 (additive only) |
+| `frontier detect` | Live on macOS/Apple Silicon; Linux/NVIDIA + WSL2 + GB10 unified-memory paths written and fixture-tested, pending real hardware |
+| Pinned model artifacts | GLM-5.2 Q2/Q4 routed and DeepSeek V4 Flash Q2/Q4 imatrix: sha256 per shard, sizes from the HF API |
+| `frontier catalog inspect-gguf` | Measures dense vs routed-expert splits from GGUF headers via range requests — no full download |
+| `frontier plan` (rules-based planner v0) | Measured memory model, tiered placement with expert-capacity counts, streaming worst-case math, graceful refusal |
+| `frontier run` | sha256 verification, runtime launch, endpoint health-check |
+| `frontier bench` | TTFT / prefill / decode tps / p50-p95-p99 latency, telemetry collectors, four prompt suites → `benchresult/v1` |
+| `frontier results matrix` | Folds committed results into the compatibility matrix; verified requires all pins + two reproductions |
+| CI | GitHub Actions: pytest + schema validation on Linux and macOS |
 
-**Next:** benchmark harness (`frontier bench` → `benchresult/v1`), pinned GGUF hashes, first verified compatibility-matrix rows, then CUDA SSD expert streaming (NVMe → pinned RAM → VRAM cache) targeting the RTX 6000 96 GB class. Enterprise-bridge deployment profiles follow. Launch gates are defined in [docs/launch_checklist.md](docs/launch_checklist.md).
+**Next:** run the benchmark matrix on the three reference machines ([playbook](docs/benchmark_playbook.md)), publish verified rows, tag v0.1.0, then the CUDA SSD expert-streaming spike ([protocol](docs/spike_cuda_expert_streaming.md)) targeting the RTX 6000 96 GB class. Launch gates in [docs/launch_checklist.md](docs/launch_checklist.md).
 
 ## Target hardware and models (v0.1)
 

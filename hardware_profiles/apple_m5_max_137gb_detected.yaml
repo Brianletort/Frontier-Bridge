@@ -2,7 +2,7 @@ schema_version: hwprofile/v1
 profile_id: apple_m5_max_137gb_detected
 provenance:
   method: detect
-  detected_at: '2026-07-04T21:53:42Z'
+  detected_at: '2026-07-05T00:53:50Z'
   tool_version: frontier-detect 0.1
   os:
     family: macos
@@ -40,7 +40,7 @@ nodes:
   class: internal_ssd
   capacity_gb: 7998.5
   measured:
-    seq_read_gbps: 19.38
+    seq_read_gbps: 14.22
     rand_read_4k_iops: null
     qd_used: 1
     bench_tool: frontier-detect python bounded read (512MB, uncached, qd1)
@@ -56,7 +56,7 @@ links:
   to: unified0
   via: internal
   measured:
-    seq_read_gbps: 19.38
+    seq_read_gbps: 14.22
 envelope:
   power_w:
     rated: null

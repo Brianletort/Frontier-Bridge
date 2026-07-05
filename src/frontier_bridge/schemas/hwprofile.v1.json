@@ -18,6 +18,10 @@
         "method": { "enum": ["detect", "manual", "vendor-spec"] },
         "detected_at": { "type": ["string", "null"] },
         "tool_version": { "type": ["string", "null"] },
+        "virtualization": {
+          "type": ["string", "null"],
+          "description": "Set when detection ran inside a VM/container layer (e.g. 'wsl2'). Measured numbers reflect that layer, not bare metal."
+        },
         "os": {
           "type": "object",
           "properties": {

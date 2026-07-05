@@ -215,23 +215,44 @@ def generate_plan(
         "shared_experts": primary_id,
     }
 
-    # Dense-resident floor: active params at quant bpw (documented heuristic).
-    dense_floor_gb = _estimate_size_gb(arch.get("params_active_b"), chosen_quant)
+    # Dense-resident floor: measured from GGUF headers when available
+    # (memory_model.dense_resident_gb, written by `frontier catalog
+    # inspect-gguf`); falls back to active params at quant bpw (documented
+    # heuristic, disclosed as a risk).
+    memory_model = model.get("memory_model") or {}
+    dense_floor_gb = (memory_model.get("dense_resident_gb") or {}).get(chosen_quant)
+    dense_floor_measured = dense_floor_gb is not None
+    if dense_floor_gb is None:
+        dense_floor_gb = _estimate_size_gb(arch.get("params_active_b"), chosen_quant)
+    per_expert_gb = (memory_model.get("per_expert_gb") or {}).get(chosen_quant)
 
     # --- Expert-tier budgeting --------------------------------------------
     l0_budget = None
     if dense_floor_gb is not None and primary_gb:
         l0_budget = max(round(primary_gb * 0.9 - dense_floor_gb, 1), 0)
 
+    def _expert_capacity(budget_gb: float | None) -> int | None:
+        """How many (expert, layer) slices fit in a tier — measured units only."""
+        if budget_gb is None or per_expert_gb is None or per_expert_gb <= 0:
+            return None
+        return int(budget_gb / per_expert_gb)
+
     routed_experts: dict[str, Any] = {
-        "l0": {"node": primary_id, "budget_gb": l0_budget, "policy": "layer_aware_lru"},
+        "l0": {
+            "node": primary_id,
+            "budget_gb": l0_budget,
+            "policy": "layer_aware_lru",
+            "expert_layer_capacity": _expert_capacity(l0_budget),
+        },
     }
     if system_pool is not None:
+        l1_budget = round(system_gb * 0.7, 1) if system_gb else None
         routed_experts["l1"] = {
             "node": system_pool["id"],
-            "budget_gb": round(system_gb * 0.7, 1) if system_gb else None,
+            "budget_gb": l1_budget,
             "policy": "lru",
             "pinned": bool(system_pool.get("pinnable") is True),
+            "expert_layer_capacity": _expert_capacity(l1_budget),
         }
     if storage_pool is not None:
         routed_experts["l2"] = {"node": storage_pool["id"], "mode": "stream_on_miss"}
@@ -259,6 +280,34 @@ def generate_plan(
             ]
         )
 
+    # --- Streaming feasibility (measured units only) --------------------------
+    # Worst-case decode miss cost per token: every routed activation misses and
+    # streams from storage. bytes/token = active_per_token x n_moe_layers x
+    # per-(expert,layer) size. Computed only from measured values — when any
+    # input is unmeasured this stays None and a risk is recorded instead.
+    streaming: dict[str, Any] | None = None
+    if not fits_in_memory and per_expert_gb:
+        routed_total = (arch.get("experts") or {}).get("routed_total")
+        active_per_token = (arch.get("experts") or {}).get("active_per_token")
+        routed_total_gb = (
+            (memory_model.get("measurement") or {}).get("routed_experts_gb") or {}
+        ).get(chosen_quant)
+        ssd_bw = ((storage_pool or {}).get("measured") or {}).get("seq_read_gbps")
+        if routed_total and active_per_token and routed_total_gb:
+            n_moe_layers = round(routed_total_gb / (per_expert_gb * routed_total))
+            worst_case_gb_per_token = round(
+                active_per_token * n_moe_layers * per_expert_gb, 2
+            )
+            streaming = {
+                "worst_case_miss_gb_per_token": worst_case_gb_per_token,
+                "moe_layers": n_moe_layers,
+                "storage_seq_read_gbps": ssd_bw,
+                "worst_case_miss_seconds_per_token": (
+                    round(worst_case_gb_per_token / ssd_bw, 2) if ssd_bw else None
+                ),
+                "source": "computed_from_measured_gguf_headers_and_links",
+            }
+
     # --- Risk annotation -----------------------------------------------------
     risks: list[str] = []
     if not fits_in_memory:
@@ -266,10 +315,16 @@ def generate_plan(
         ssd_bw = ((storage_pool or {}).get("measured") or {}).get("seq_read_gbps")
         if ssd_bw is None:
             risks.append("ssd_bandwidth_unmeasured_streaming_performance_unknown")
+        if streaming is None:
+            risks.append("streaming_cost_not_computable_missing_measured_expert_sizes")
+        elif (streaming.get("worst_case_miss_seconds_per_token") or 0) > 1.0:
+            risks.append("worst_case_all_miss_decode_exceeds_1s_per_token")
     if size_estimated:
         risks.append("model_size_estimated_from_param_count_not_measured")
     if dense_floor_gb is None:
         risks.append("dense_resident_footprint_unknown")
+    elif not dense_floor_measured:
+        risks.append("dense_resident_estimated_not_measured")
     if context_max is None:
         risks.append("context_max_unverified")
     if workload in ("coding_agent", "multi_agent", "tool_calling"):
@@ -277,6 +332,13 @@ def generate_plan(
 
     # Anything built on estimates or streaming is experimental, never recommended.
     verdict = "experimental" if (size_estimated or not fits_in_memory) else "recommended"
+
+    expected: dict[str, Any] = {
+        "decode_tps": {"p50": None, "source": None},
+        "usability_class": "unrated",
+    }
+    if streaming is not None:
+        expected["streaming"] = streaming
 
     return {
         **base,
@@ -298,9 +360,6 @@ def generate_plan(
             "build": None,
             "launch": launch_command(engine, model_id, chosen_quant, context_budget),
         },
-        "expected": {
-            "decode_tps": {"p50": None, "source": None},
-            "usability_class": "unrated",
-        },
+        "expected": expected,
         "risks": risks,
     }

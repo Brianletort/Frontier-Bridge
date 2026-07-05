@@ -74,6 +74,18 @@
       "description": "result_ids of prior runs this run reproduces. Two reproductions are required for verified status.",
       "items": { "type": "string" }
     },
-    "status": { "enum": ["claimed", "verified"] }
+    "status": { "enum": ["claimed", "verified"] },
+    "subject": {
+      "type": "object",
+      "description": "What was benchmarked, for matrix folding (added additively in v1).",
+      "properties": {
+        "modelprofile": { "type": ["string", "null"] },
+        "workload": { "type": ["string", "null"] }
+      }
+    },
+    "usability_suggested": {
+      "description": "Tool-computed suggestion from documented thresholds; the published matrix label is a maintainer decision backed by this.",
+      "enum": ["unrated", "runs", "usable", "interactive", "agent_capable", "not_recommended", null]
+    }
   }
 }

@@ -1,54 +1,77 @@
-# GLM-5.2, Q4 routed-quant GGUF.
-# All architecture figures are CLAIMED from upstream docs (zai-org/GLM-5) — re-verify at
-# implementation time. Nulls stay null until measured; sha256 stays null until pinned.
 schema_version: modelprofile/v1
 model_id: glm-5.2
 family: glm
 license:
-  name: null                      # verify upstream before any verified result
-  commercial_ok: unknown
+  name: MIT
+  commercial_ok: true
 architecture:
   type: moe
-  params_total_b: 744             # claimed upstream
-  params_active_b: 40             # claimed upstream
+  params_total_b: 744
+  params_active_b: 40
   experts:
-    routed_total: null            # null until verified
-    active_per_token: null
-    shared: null
+    routed_total: 256
+    active_per_token: 8
+    shared: 1
   attention:
-    type: null
-    kv_scaling: null              # linear | sub-linear — verify
-  context_max: 1000000            # claimed upstream; treat as claim until benchmarked
+    type: mla_dsa_indexshare
+    kv_scaling: sub-linear
+  context_max: 1048576
   spec_decode:
     mtp: claimed_unverified
 artifacts:
-  - format: gguf
-    quant: q4_routed
-    size_gb: null                 # measured when downloaded; never hand-typed
-    source: https://huggingface.co/unsloth/GLM-5.2-GGUF
-    sha256: null                  # pinned before any verified result
+- format: gguf
+  quant: q4_routed
+  upstream_name: UD-Q4_K_XL
+  size_gb: 467.3
+  source: https://huggingface.co/unsloth/GLM-5.2-GGUF/tree/main/UD-Q4_K_XL
+  sha256: 3256ac8c290273f0965ff39e93a8bcd07dc99bcd23e923bd4b7306ef39061038
+  shards:
+  - path: UD-Q4_K_XL/GLM-5.2-UD-Q4_K_XL-00001-of-00011.gguf
+    sha256: 3256ac8c290273f0965ff39e93a8bcd07dc99bcd23e923bd4b7306ef39061038
+  - path: UD-Q4_K_XL/GLM-5.2-UD-Q4_K_XL-00002-of-00011.gguf
+    sha256: aaedfb89d314d6967a80005b93a9c460a494babc6c3e4f0138e21891e21572e1
+  - path: UD-Q4_K_XL/GLM-5.2-UD-Q4_K_XL-00003-of-00011.gguf
+    sha256: a2b45b63075b2e1bc8a73c9ce531ccea54c03001286a80f77454871aa93fdca8
+  - path: UD-Q4_K_XL/GLM-5.2-UD-Q4_K_XL-00004-of-00011.gguf
+    sha256: b5404d8d17b63e127aa34c1f98cef64d3722050d8ef1a0792dba816477f4c606
+  - path: UD-Q4_K_XL/GLM-5.2-UD-Q4_K_XL-00005-of-00011.gguf
+    sha256: 9ab79e1947115be35da815c1be2812a1451d3ec11f9f5d60dd3ba152e1ed5be2
+  - path: UD-Q4_K_XL/GLM-5.2-UD-Q4_K_XL-00006-of-00011.gguf
+    sha256: 43a2631ee392492f8857bae6c88660e0f1cac0fd6bc40d832538ac5421b3167b
+  - path: UD-Q4_K_XL/GLM-5.2-UD-Q4_K_XL-00007-of-00011.gguf
+    sha256: 1efd96717a956a160a1717999c7dedbe601b5787ea6220d8185d232e95eff893
+  - path: UD-Q4_K_XL/GLM-5.2-UD-Q4_K_XL-00008-of-00011.gguf
+    sha256: 3460334e8148d12402c8f5adf684b132918504bbea4d3aecd74801121e8c8a99
+  - path: UD-Q4_K_XL/GLM-5.2-UD-Q4_K_XL-00009-of-00011.gguf
+    sha256: 7f6be8ce1c9dcb973ede026b7341657f8add8617f386f77cc165ff697cf9620d
+  - path: UD-Q4_K_XL/GLM-5.2-UD-Q4_K_XL-00010-of-00011.gguf
+    sha256: 6a26bf391e6f1de947e63016d11ada565f7476a06cb90b444f6db334baa949f9
+  - path: UD-Q4_K_XL/GLM-5.2-UD-Q4_K_XL-00011-of-00011.gguf
+    sha256: 27032b927daa606872d887c56631c5278a788b39d219784b262e1df3d4cb851e
 runtime_support:
-  - runtime: ds4
-    status: claimed
-    source: https://github.com/mitkox/ds4-zgx-gb10
-  - runtime: ds4_zgx
-    status: claimed
-    source: https://github.com/mitkox/ds4-zgx-gb10
-  - runtime: llama_cpp
-    status: claimed
-    source: https://huggingface.co/unsloth/GLM-5.2-GGUF
-  - runtime: vllm
-    status: claimed
-    source: https://github.com/zai-org/GLM-5
-  - runtime: sglang
-    status: claimed
-    source: https://github.com/zai-org/GLM-5
+- runtime: llama_cpp
+  status: claimed
+  source: https://unsloth.ai/docs/models/glm-5.2
+- runtime: ds4
+  status: claimed
+  source: https://github.com/mitkox/ds4-zgx-gb10
+- runtime: ds4_zgx
+  status: claimed
+  source: https://github.com/mitkox/ds4-zgx-gb10
+- runtime: vllm
+  status: claimed
+  source: https://github.com/zai-org/GLM-5
+- runtime: sglang
+  status: claimed
+  source: https://github.com/zai-org/GLM-5
 memory_model:
-  # Measured per quant, per runtime. Null until measured — the planner falls back to
-  # documented heuristics and labels the plan accordingly.
   dense_resident_gb:
-    q4_routed: null
+    q4_routed: 21.04
   per_expert_gb:
-    q4_routed: null
+    q4_routed: 0.0221
   kv_per_1k_tokens_mb: null
+  measurement:
+    method: gguf_header_offset_deltas
+    routed_experts_gb:
+      q4_routed: 446.24
 known_failure_modes: []

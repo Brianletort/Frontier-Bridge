@@ -1,7 +1,7 @@
 """Detect parsers tested against fixture outputs — the Linux/NVIDIA path has no
 live hardware here, so these fixtures are the only pre-hardware safety net."""
 
-from frontier_bridge.detect import linux_nvidia, macos
+from frontier_bridge.detect import common, linux_nvidia, macos
 from frontier_bridge.validation import validate_instance
 
 NVIDIA_SMI_FIXTURE = (
@@ -118,6 +118,128 @@ def test_macos_parse_hardware_overview():
 def test_macos_parse_hardware_overview_bad_input():
     assert macos.parse_hardware_overview(None)["chip"] is None
     assert macos.parse_hardware_overview("not json")["chip"] is None
+
+
+GB10_NVIDIA_SMI_FIXTURE = "NVIDIA GB10, 122880, 580.95.05, 12.1\n"
+
+PROC_VERSION_WSL2 = (
+    "Linux version 6.6.87.2-microsoft-standard-WSL2 "
+    "(root@builder) (gcc ...) #1 SMP ...\n"
+)
+PROC_VERSION_NATIVE = "Linux version 6.8.0-45-generic (buildd@lcy02) ...\n"
+
+FIO_JSON_FIXTURE = """{
+  "fio version": "fio-3.36",
+  "jobs": [
+    {
+      "job options": {"iodepth": "32"},
+      "read": {"bw_bytes": 7100000000, "iops": 6771.5}
+    }
+  ]
+}"""
+
+NVBANDWIDTH_FIXTURE = """nvbandwidth Version: v0.5
+Running host_to_device_memcpy_ce.
+SUM host_to_device_memcpy_ce 55.23
+Running device_to_host_memcpy_ce.
+SUM device_to_host_memcpy_ce 52.10
+"""
+
+
+def test_is_wsl2_from_proc_version():
+    assert common.is_wsl2(PROC_VERSION_WSL2) is True
+    assert common.is_wsl2(PROC_VERSION_NATIVE) is False
+
+
+def test_parse_fio_json():
+    measured = common.parse_fio_json(FIO_JSON_FIXTURE)
+    assert measured["seq_read_gbps"] == 7.1
+    assert measured["qd_used"] == 32
+    assert "fio-3.36" in measured["bench_tool"]
+    assert common.parse_fio_json(None) is None
+    assert common.parse_fio_json("not json") is None
+    assert common.parse_fio_json('{"jobs": []}') is None
+
+
+def test_parse_nvbandwidth():
+    measured = common.parse_nvbandwidth(NVBANDWIDTH_FIXTURE)
+    assert measured["h2d_gbps"] == 55.2
+    assert measured["d2h_gbps"] == 52.1
+    assert measured["pinned"] is True
+    assert common.parse_nvbandwidth("no sum lines") is None
+    assert common.parse_nvbandwidth(None) is None
+
+
+def test_unified_memory_heuristic():
+    gb10 = linux_nvidia.parse_nvidia_smi(GB10_NVIDIA_SMI_FIXTURE)
+    rtx = linux_nvidia.parse_nvidia_smi(NVIDIA_SMI_FIXTURE)
+    assert linux_nvidia.is_unified_memory_system(gb10, "aarch64") is True
+    assert linux_nvidia.is_unified_memory_system(rtx, "x86_64") is False
+    # aarch64 alone is not enough — discrete stays the safe default.
+    assert linux_nvidia.is_unified_memory_system(rtx, "aarch64") is False
+
+
+def test_gb10_unified_profile_topology():
+    profile = linux_nvidia.build_profile(
+        gpus=linux_nvidia.parse_nvidia_smi(GB10_NVIDIA_SMI_FIXTURE),
+        ram_gb=119.9,
+        cpu_info={"cores": 20, "model": "GB10 Grace CPU", "numa_nodes": 1},
+        nvme_disks=[{"name": "nvme0n1", "capacity_gb": 3840.8}],
+        ssd_measured=_NULL_SSD_MEASURED,
+        os_version=None,
+        kernel="6.11.0",
+        unified=True,
+        machine="aarch64",
+    )
+    assert validate_instance(profile) == []
+    memory_nodes = [n for n in profile["nodes"] if n["kind"] == "memory"]
+    assert len(memory_nodes) == 1
+    assert memory_nodes[0]["class"] == "unified"
+    unified_links = [link for link in profile["links"] if link["via"] == "unified"]
+    assert unified_links and unified_links[0]["available"] is True
+    # No separate vram node and no gds link on coherent-memory systems.
+    assert not any(n["id"].startswith("vram") for n in profile["nodes"])
+    assert not any(link["via"] == "gds" for link in profile["links"])
+
+
+def test_wsl2_profile_annotation_and_gds_false():
+    profile = linux_nvidia.build_profile(
+        gpus=linux_nvidia.parse_nvidia_smi(NVIDIA_SMI_FIXTURE),
+        ram_gb=48.0,  # WSL-assigned, not host RAM
+        cpu_info={"cores": 32, "model": None, "numa_nodes": 1},
+        nvme_disks=[{"name": "sdc", "capacity_gb": 2000.0}],
+        ssd_measured=_NULL_SSD_MEASURED,
+        os_version=None,
+        kernel="6.6.87.2-microsoft-standard-WSL2",
+        wsl2=True,
+        machine="x86_64",
+    )
+    assert validate_instance(profile) == []
+    assert profile["provenance"]["virtualization"] == "wsl2"
+    assert profile["profile_id"].endswith("wsl2_detected")
+    gds = [link for link in profile["links"] if link["via"] == "gds"]
+    assert gds and gds[0]["available"] is False
+
+
+def test_pcie_probe_results_land_on_first_gpu_link():
+    profile = linux_nvidia.build_profile(
+        gpus=linux_nvidia.parse_nvidia_smi(NVIDIA_SMI_FIXTURE),
+        ram_gb=64.0,
+        cpu_info={"cores": 32, "model": None, "numa_nodes": 1},
+        nvme_disks=[],
+        ssd_measured=_NULL_SSD_MEASURED,
+        os_version=None,
+        kernel="6.8.0",
+        pcie_measured={"h2d_gbps": 55.2, "d2h_gbps": 52.1, "pinned": True},
+        machine="x86_64",
+    )
+    assert validate_instance(profile) == []
+    pcie = [
+        link for link in profile["links"]
+        if link["via"] == "pcie" and link["to"] == "vram0"
+    ]
+    assert pcie[0]["measured"]["h2d_gbps"] == 55.2
+    assert pcie[0]["measured"]["pinned"] is True
 
 
 def test_macos_live_detect_validates():

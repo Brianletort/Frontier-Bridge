@@ -1,9 +1,20 @@
-"""Linux / NVIDIA detection.
+"""Linux / NVIDIA detection, including WSL2 and GB10/Grace unified memory.
 
-Collectors: nvidia-smi, /proc/meminfo, lscpu, lsblk, and a bounded uncached
-read benchmark. The PCIe H2D/D2H probe (pinned cudaMemcpy) and GPUDirect
-Storage detection are future work: those links ship with measured nulls and
-`available: unknown` rather than guesses.
+Collectors: nvidia-smi, /proc/meminfo, lscpu, lsblk, fio (preferred) or a
+bounded uncached Python read benchmark, and a PCIe H2D/D2H probe
+(nvbandwidth, else cuda-python pinned memcpy, else nulls).
+
+Environment handling:
+
+- WSL2 is detected from /proc/version or WSL_DISTRO_NAME and recorded in
+  ``provenance.virtualization``. Under WSL2 the RAM figure is what WSL was
+  assigned (.wslconfig), not host RAM, and disk numbers reflect ext4-on-VHDX —
+  run detection from a native ext4 path, never /mnt/c (9p is slow and would
+  produce misleading numbers). GPUDirect Storage is unavailable under WSL2;
+  the gds link is emitted with ``available: false`` there.
+- GB10 / Grace-class systems (aarch64 + NVIDIA GPU with coherent memory) are
+  expressed as one ``unified`` memory node, like the macOS path — same schema,
+  different link topology.
 
 Untested caveat: this path was written on macOS against fixture outputs. It is
 fixture-tested (see tests/) but has not yet run on real Linux/NVIDIA hardware.
@@ -15,11 +26,24 @@ import platform
 from typing import Any
 
 from frontier_bridge.detect.common import (
-    bounded_disk_read_bench,
+    disk_read_bench,
+    is_wsl2,
+    probe_pcie_bandwidth,
     run_command,
     sanitize_id,
     utc_now_iso,
 )
+
+# GPU-name markers for Grace/GB10-class coherent unified memory. Extend as
+# verified hardware lands; unknown systems default to discrete vram+sysram.
+_UNIFIED_GPU_MARKERS = ("gb10", "grace", "gb200", "gh200")
+
+_NULL_SSD_MEASURED: dict[str, Any] = {
+    "seq_read_gbps": None,
+    "rand_read_4k_iops": None,
+    "qd_used": None,
+    "bench_tool": None,
+}
 
 _NVIDIA_SMI_QUERY = [
     "nvidia-smi",
@@ -108,6 +132,18 @@ def parse_lsblk(text: str | None) -> list[dict[str, Any]]:
     return disks
 
 
+def is_unified_memory_system(gpus: list[dict[str, Any]], machine: str) -> bool:
+    """Heuristic for Grace/GB10-class coherent unified memory: aarch64 plus a
+    GPU whose name carries a known marker. Discrete is the safe default."""
+    if machine != "aarch64":
+        return False
+    for gpu in gpus:
+        name = (gpu.get("name") or "").lower()
+        if any(marker in name for marker in _UNIFIED_GPU_MARKERS):
+            return True
+    return False
+
+
 def build_profile(
     gpus: list[dict[str, Any]],
     ram_gb: float | None,
@@ -116,6 +152,10 @@ def build_profile(
     ssd_measured: dict[str, Any],
     os_version: str | None,
     kernel: str | None,
+    wsl2: bool = False,
+    unified: bool = False,
+    pcie_measured: dict[str, Any] | None = None,
+    machine: str | None = None,
 ) -> dict[str, Any]:
     """Assemble an hwprofile/v1 dict from parsed collector outputs (pure, testable)."""
     nodes: list[dict[str, Any]] = [
@@ -124,25 +164,43 @@ def build_profile(
             "kind": "compute",
             "class": "cpu",
             "vendor": None,
-            "arch": None,
+            "arch": machine,
             "model": cpu_info.get("model"),
             "cores": cpu_info.get("cores"),
             "numa_nodes": cpu_info.get("numa_nodes"),
         },
-        {
-            "id": "sysram0",
-            "kind": "memory",
-            "class": "system",
-            "capacity_gb": ram_gb,
-            "bandwidth_gbps": {"rated": None, "measured": None},
-            "pinnable": True,
-        },
     ]
     links: list[dict[str, Any]] = []
 
+    if unified:
+        host_mem_id = "unified0"
+        nodes.append(
+            {
+                "id": host_mem_id,
+                "kind": "memory",
+                "class": "unified",
+                "capacity_gb": ram_gb,
+                "bandwidth_gbps": {"rated": None, "measured": None},
+                "pinnable": "unknown",
+            }
+        )
+    else:
+        host_mem_id = "sysram0"
+        nodes.append(
+            {
+                "id": host_mem_id,
+                "kind": "memory",
+                "class": "system",
+                "capacity_gb": ram_gb,
+                "bandwidth_gbps": {"rated": None, "measured": None},
+                "pinnable": True,
+            }
+        )
+
     gpu_label = "nogpu"
+    first_gpu_mem_id: str | None = None
     for i, gpu in enumerate(gpus):
-        gpu_id, vram_id = f"gpu{i}", f"vram{i}"
+        gpu_id = f"gpu{i}"
         nodes.append(
             {
                 "id": gpu_id,
@@ -158,27 +216,53 @@ def build_profile(
                 "rated": {"fp16_tflops": None},
             }
         )
-        nodes.append(
-            {
-                "id": vram_id,
-                "kind": "memory",
-                "class": "device_local",
-                "capacity_gb": gpu.get("vram_gb"),
-                "bandwidth_gbps": {"rated": None, "measured": None},
-                "attached_to": gpu_id,
+        if unified:
+            # Coherent memory: the GPU shares the unified node; no separate vram.
+            links.append(
+                {
+                    "from": host_mem_id,
+                    "to": gpu_id,
+                    "via": "unified",
+                    "available": True,
+                    "measured": {
+                        "h2d_gbps": (pcie_measured or {}).get("h2d_gbps"),
+                        "d2h_gbps": (pcie_measured or {}).get("d2h_gbps"),
+                    },
+                }
+            )
+            if i == 0:
+                first_gpu_mem_id = host_mem_id
+        else:
+            vram_id = f"vram{i}"
+            nodes.append(
+                {
+                    "id": vram_id,
+                    "kind": "memory",
+                    "class": "device_local",
+                    "capacity_gb": gpu.get("vram_gb"),
+                    "bandwidth_gbps": {"rated": None, "measured": None},
+                    "attached_to": gpu_id,
+                }
+            )
+            measured = {
+                "h2d_gbps": (pcie_measured or {}).get("h2d_gbps") if i == 0 else None,
+                "d2h_gbps": (pcie_measured or {}).get("d2h_gbps") if i == 0 else None,
+                "pinned": (pcie_measured or {}).get("pinned", "unknown")
+                if i == 0
+                else "unknown",
             }
-        )
-        # PCIe probe not implemented yet: nulls, never guesses.
-        links.append(
-            {
-                "from": "sysram0",
-                "to": vram_id,
-                "via": "pcie",
-                "gen": None,
-                "lanes": None,
-                "measured": {"h2d_gbps": None, "d2h_gbps": None, "pinned": "unknown"},
-            }
-        )
+            links.append(
+                {
+                    "from": host_mem_id,
+                    "to": vram_id,
+                    "via": "pcie",
+                    "gen": None,
+                    "lanes": None,
+                    "measured": measured,
+                }
+            )
+            if i == 0:
+                first_gpu_mem_id = vram_id
         if i == 0 and gpu.get("name"):
             gpu_label = sanitize_id(str(gpu["name"]))
 
@@ -191,29 +275,33 @@ def build_profile(
                 "class": "nvme",
                 "capacity_gb": disk.get("capacity_gb"),
                 "pcie": {"gen": None, "lanes": None},
-                "measured": ssd_measured if j == 0 else {
-                    "seq_read_gbps": None,
-                    "rand_read_4k_iops": None,
-                    "qd_used": None,
-                    "bench_tool": None,
-                },
+                "measured": ssd_measured if j == 0 else dict(_NULL_SSD_MEASURED),
             }
         )
         links.append(
             {
                 "from": nvme_id,
-                "to": "sysram0",
+                "to": host_mem_id,
                 "via": "pcie",
                 "measured": {
                     "seq_read_gbps": ssd_measured.get("seq_read_gbps") if j == 0 else None
                 },
             }
         )
-        if gpus:
-            links.append({"from": nvme_id, "to": "vram0", "via": "gds", "available": "unknown"})
+        if first_gpu_mem_id and not unified:
+            links.append(
+                {
+                    "from": nvme_id,
+                    "to": first_gpu_mem_id,
+                    "via": "gds",
+                    # GPUDirect Storage is not available under WSL2.
+                    "available": False if wsl2 else "unknown",
+                }
+            )
 
     ram_label = f"{int(ram_gb)}ram" if ram_gb else "unknownram"
-    profile_id = f"{gpu_label}_{ram_label}_detected"
+    suffix = "wsl2_detected" if wsl2 else "detected"
+    profile_id = f"{gpu_label}_{ram_label}_{suffix}"
 
     return {
         "schema_version": "hwprofile/v1",
@@ -222,6 +310,7 @@ def build_profile(
             "method": "detect",
             "detected_at": utc_now_iso(),
             "tool_version": "frontier-detect 0.1",
+            "virtualization": "wsl2" if wsl2 else None,
             "os": {"family": "linux", "version": os_version, "kernel": kernel},
         },
         "nodes": nodes,
@@ -236,6 +325,9 @@ def build_profile(
 def detect(run_disk_bench: bool = True) -> dict[str, Any]:
     """Detect this Linux machine and return an hwprofile/v1 dict."""
     gpus = parse_nvidia_smi(run_command(_NVIDIA_SMI_QUERY))
+    machine = platform.machine() or None
+    wsl2 = is_wsl2()
+    unified = is_unified_memory_system(gpus, machine or "")
 
     meminfo_text: str | None
     try:
@@ -244,14 +336,9 @@ def detect(run_disk_bench: bool = True) -> dict[str, Any]:
     except OSError:
         meminfo_text = None
 
-    ssd_measured: dict[str, Any] = {
-        "seq_read_gbps": None,
-        "rand_read_4k_iops": None,
-        "qd_used": None,
-        "bench_tool": None,
-    }
+    ssd_measured: dict[str, Any] = dict(_NULL_SSD_MEASURED)
     if run_disk_bench:
-        ssd_measured = bounded_disk_read_bench()
+        ssd_measured = disk_read_bench()
 
     return build_profile(
         gpus=gpus,
@@ -261,4 +348,8 @@ def detect(run_disk_bench: bool = True) -> dict[str, Any]:
         ssd_measured=ssd_measured,
         os_version=None,
         kernel=platform.release() or None,
+        wsl2=wsl2,
+        unified=unified,
+        pcie_measured=probe_pcie_bandwidth() if gpus else None,
+        machine=machine,
     )

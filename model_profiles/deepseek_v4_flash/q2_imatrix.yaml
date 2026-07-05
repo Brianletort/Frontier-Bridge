@@ -1,41 +1,54 @@
-# DeepSeek V4 Flash, Q2 imatrix GGUF.
-# Parameter counts are NOT filled in here because we have not verified them upstream.
-# The planner will refuse to plan this model until params/sizes are verified or measured —
-# that refusal is intended behavior, not a bug.
 schema_version: modelprofile/v1
 model_id: deepseek-v4-flash
 family: deepseek
 license:
-  name: null
-  commercial_ok: unknown
+  name: MIT
+  commercial_ok: true
 architecture:
   type: moe
-  params_total_b: null            # verify upstream before filling in
-  params_active_b: null
+  params_total_b: 284
+  params_active_b: 13
   experts:
-    routed_total: null
-    active_per_token: null
-    shared: null
+    routed_total: 256
+    active_per_token: 6
+    shared: 1
   attention:
-    type: null
-    kv_scaling: null
-  context_max: null
+    type: hybrid_csa_hca
+    kv_scaling: sub-linear
+  context_max: 1000000
   spec_decode:
-    mtp: unknown
+    mtp: claimed_unverified
 artifacts:
-  - format: gguf
-    quant: q2_imatrix
-    size_gb: null
-    source: null                  # pin exact GGUF URL at build time
-    sha256: null
+- format: gguf
+  quant: q2_imatrix
+  upstream_name: Q2_K-XL
+  size_gb: 107.0
+  source: https://huggingface.co/teamblobfish/DeepSeek-V4-Flash-GGUF/tree/main/Q2_K-XL
+  sha256: 5a952f1e26bc654df36a8e654a97a5fde0bdaec81b863c7884f96b6da868832c
+  shards:
+  - path: Q2_K-XL/DeepSeek-V4-Flash-Q2_K-XL-00001-of-00003.gguf
+    sha256: 5a952f1e26bc654df36a8e654a97a5fde0bdaec81b863c7884f96b6da868832c
+  - path: Q2_K-XL/DeepSeek-V4-Flash-Q2_K-XL-00002-of-00003.gguf
+    sha256: e17111e2bf5a037bd2132244e803875449803d70cd8321b6a5694011710d7661
+  - path: Q2_K-XL/DeepSeek-V4-Flash-Q2_K-XL-00003-of-00003.gguf
+    sha256: cd62a8ac6c876d1f07f247515070c0d17b47195280e0280afaf16a3765c5baa8
 runtime_support:
-  - runtime: ds4
-    status: claimed
-    source: https://github.com/mitkox/ds4-zgx-gb10
+- runtime: llama_cpp
+  status: claimed
+  source: https://huggingface.co/teamblobfish/DeepSeek-V4-Flash-GGUF
+- runtime: ds4
+  status: claimed
+  source: https://github.com/mitkox/ds4-zgx-gb10
 memory_model:
   dense_resident_gb:
-    q2_imatrix: null
+    q2_imatrix: 6.75
   per_expert_gb:
-    q2_imatrix: null
+    q2_imatrix: 0.0091
   kv_per_1k_tokens_mb: null
-known_failure_modes: []
+  measurement:
+    method: gguf_header_offset_deltas
+    routed_experts_gb:
+      q2_imatrix: 100.28
+known_failure_modes:
+- hybrid_csa_hca_requires_recent_runtime_support
+- q2_quality_degradation_unquantified

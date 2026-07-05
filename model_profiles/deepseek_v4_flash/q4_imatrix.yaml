@@ -1,40 +1,55 @@
-# DeepSeek V4 Flash, Q4 imatrix GGUF.
-# Parameter counts are NOT filled in here because we have not verified them upstream.
-# The planner will refuse to plan this model until params/sizes are verified or measured.
 schema_version: modelprofile/v1
 model_id: deepseek-v4-flash
 family: deepseek
 license:
-  name: null
-  commercial_ok: unknown
+  name: MIT
+  commercial_ok: true
 architecture:
   type: moe
-  params_total_b: null            # verify upstream before filling in
-  params_active_b: null
+  params_total_b: 284
+  params_active_b: 13
   experts:
-    routed_total: null
-    active_per_token: null
-    shared: null
+    routed_total: 256
+    active_per_token: 6
+    shared: 1
   attention:
-    type: null
-    kv_scaling: null
-  context_max: null
+    type: hybrid_csa_hca
+    kv_scaling: sub-linear
+  context_max: 1000000
   spec_decode:
-    mtp: unknown
+    mtp: claimed_unverified
 artifacts:
-  - format: gguf
-    quant: q4_imatrix
-    size_gb: null
-    source: null
-    sha256: null
+- format: gguf
+  quant: q4_imatrix
+  upstream_name: Q4_K_M-XL
+  size_gb: 174.9
+  source: https://huggingface.co/teamblobfish/DeepSeek-V4-Flash-GGUF/tree/main/Q4_K_M-XL
+  sha256: 9e551940268c2c85c5fdcc1139e8ee9e2f70b90b814764b87d20b2b844ffbc83
+  shards:
+  - path: Q4_K_M-XL/DeepSeek-V4-Flash-Q4_K_M-XL-00001-of-00004.gguf
+    sha256: 9e551940268c2c85c5fdcc1139e8ee9e2f70b90b814764b87d20b2b844ffbc83
+  - path: Q4_K_M-XL/DeepSeek-V4-Flash-Q4_K_M-XL-00002-of-00004.gguf
+    sha256: bbd631cd32449b501936311771d5ae5ec5929b6a1dac8f6f139d7c88cd49164e
+  - path: Q4_K_M-XL/DeepSeek-V4-Flash-Q4_K_M-XL-00003-of-00004.gguf
+    sha256: 0eaf87b348eff5ede2b45d0d23d4f690c5cb9aa46f4165ff5ba9938d728bd0b7
+  - path: Q4_K_M-XL/DeepSeek-V4-Flash-Q4_K_M-XL-00004-of-00004.gguf
+    sha256: 5c8c0edd11b4846e8e9f5f89a32c433931b5ed904d08cfc7dd44510f4310e9c2
 runtime_support:
-  - runtime: ds4
-    status: claimed
-    source: https://github.com/mitkox/ds4-zgx-gb10
+- runtime: llama_cpp
+  status: claimed
+  source: https://huggingface.co/teamblobfish/DeepSeek-V4-Flash-GGUF
+- runtime: ds4
+  status: claimed
+  source: https://github.com/mitkox/ds4-zgx-gb10
 memory_model:
   dense_resident_gb:
-    q4_imatrix: null
+    q4_imatrix: 7.41
   per_expert_gb:
-    q4_imatrix: null
+    q4_imatrix: 0.0152
   kv_per_1k_tokens_mb: null
-known_failure_modes: []
+  measurement:
+    method: gguf_header_offset_deltas
+    routed_experts_gb:
+      q4_imatrix: 167.45
+known_failure_modes:
+- hybrid_csa_hca_requires_recent_runtime_support

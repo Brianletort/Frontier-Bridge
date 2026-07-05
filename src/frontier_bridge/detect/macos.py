@@ -13,7 +13,7 @@ import shutil
 from typing import Any
 
 from frontier_bridge.detect.common import (
-    bounded_disk_read_bench,
+    disk_read_bench,
     run_command,
     sanitize_id,
     utc_now_iso,
@@ -67,7 +67,7 @@ def detect(run_disk_bench: bool = True) -> dict[str, Any]:
         "bench_tool": None,
     }
     if run_disk_bench:
-        ssd_measured = bounded_disk_read_bench()
+        ssd_measured = disk_read_bench()
 
     chip_id = sanitize_id(chip or "apple_silicon")
     mem_label = f"{int(capacity_gb)}gb" if capacity_gb else "unknownram"

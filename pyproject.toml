@@ -42,7 +42,7 @@ Issues = "https://github.com/Brianletort/Frontier-Bridge/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-frontier_bridge = ["schemas/*.json"]
+frontier_bridge = ["schemas/*.json", "bench/prompts/*.jsonl"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
