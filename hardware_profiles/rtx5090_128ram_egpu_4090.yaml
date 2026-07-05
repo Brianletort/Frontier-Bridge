@@ -1,0 +1,115 @@
+# Reference profile: Linux workstation with an internal RTX 5090 (32 GB VRAM),
+# 128 GB system RAM, NVMe, plus an RTX 4090 (24 GB) in a Thunderbolt eGPU
+# enclosure (RFC 0002 island example).
+# provenance.method is manual: numbers here come from vendor specs or are null.
+# The eGPU's VRAM is fast locally but sits behind the Thunderbolt tunnel — the
+# planner places a fixed expert subset there as a resident island rather than
+# streaming across the link per token.
+schema_version: hwprofile/v1
+profile_id: rtx5090_128ram_egpu_4090
+provenance:
+  method: manual
+  detected_at: null
+  tool_version: null
+  os:
+    family: linux
+    version: null
+    kernel: null
+
+nodes:
+  - id: cpu0
+    kind: compute
+    class: cpu
+    vendor: null
+    arch: null
+    model: null
+    cores: null
+    numa_nodes: 1
+  - id: gpu0
+    kind: compute
+    class: gpu
+    vendor: nvidia
+    arch: blackwell
+    model: RTX 5090
+    api:
+      cuda: unverified
+      sm: null
+    rated:
+      fp16_tflops: null
+  - id: vram0
+    kind: memory
+    class: device_local
+    capacity_gb: 32
+    bandwidth_gbps:
+      rated: null
+      measured: null
+    attached_to: gpu0
+  - id: gpu1
+    kind: compute
+    class: gpu
+    vendor: nvidia
+    arch: ada
+    model: RTX 4090 (eGPU enclosure)
+    api:
+      cuda: unverified
+      sm: null
+    rated:
+      fp16_tflops: null
+  - id: vram1
+    kind: memory
+    class: device_local
+    capacity_gb: 24
+    bandwidth_gbps:
+      rated: null
+      measured: null
+    attached_to: gpu1
+  - id: sysram0
+    kind: memory
+    class: system
+    capacity_gb: 128
+    bandwidth_gbps:
+      rated: null
+      measured: null
+    pinnable: true
+  - id: nvme0
+    kind: storage
+    class: nvme
+    capacity_gb: null
+    pcie:
+      gen: null
+      lanes: null
+    measured:
+      seq_read_gbps: null
+      rand_read_4k_iops: null
+      qd_used: null
+      bench_tool: null
+
+links:
+  - from: sysram0
+    to: vram0
+    via: pcie
+    gen: null
+    lanes: null
+    measured:
+      h2d_gbps: null
+      d2h_gbps: null
+      pinned: unknown
+  - from: sysram0
+    to: vram1
+    via: thunderbolt
+    measured:
+      h2d_gbps: null
+      d2h_gbps: null
+      pinned: unknown
+  - from: nvme0
+    to: sysram0
+    via: pcie
+    measured:
+      seq_read_gbps: null
+
+envelope:
+  power_w:
+    rated: null
+    measured_idle: null
+    measured_load: null
+  thermal_headroom: unknown

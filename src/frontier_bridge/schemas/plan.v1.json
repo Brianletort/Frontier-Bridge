@@ -45,7 +45,12 @@
               "properties": {
                 "l0": { "$ref": "#/$defs/tier" },
                 "l1": { "$ref": "#/$defs/tier" },
-                "l2": { "$ref": "#/$defs/tier" }
+                "l2": { "$ref": "#/$defs/tier" },
+                "l3": { "$ref": "#/$defs/tier" },
+                "island": {
+                  "$ref": "#/$defs/tier",
+                  "description": "Compute-attached memory behind a slow link (e.g. eGPU VRAM over Thunderbolt): a fixed expert subset lives there permanently; never streamed across the link per token (RFC 0002)."
+                }
               }
             },
             "kv_cache": {

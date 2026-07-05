@@ -1,0 +1,87 @@
+# Reference profile: Apple M5 Max, 128 GB unified memory, internal SSD, plus a
+# Thunderbolt 5 external SSD (RFC 0002 external-tier example).
+# provenance.method is manual: numbers here come from vendor specs or are null.
+# The external drive's real tier position depends entirely on its measured
+# link bandwidth — run `frontier detect` on the actual machine to find out.
+schema_version: hwprofile/v1
+profile_id: m5_max_128gb_tb5_ssd
+provenance:
+  method: manual
+  detected_at: null
+  tool_version: null
+  os:
+    family: macos
+    version: null
+    kernel: null
+
+nodes:
+  - id: cpu0
+    kind: compute
+    class: cpu
+    vendor: apple
+    arch: arm64
+    model: Apple M5 Max
+    cores: null
+    numa_nodes: 1
+  - id: gpu0
+    kind: compute
+    class: gpu
+    vendor: apple
+    arch: m5_max
+    model: Apple M5 Max
+    api:
+      metal: unverified
+    rated:
+      fp16_tflops: null
+  - id: unified0
+    kind: memory
+    class: unified
+    capacity_gb: 128
+    bandwidth_gbps:
+      rated: null
+      measured: null
+    pinnable: unknown
+  - id: ssd0
+    kind: storage
+    class: internal_ssd
+    capacity_gb: null
+    measured:
+      seq_read_gbps: null
+      rand_read_4k_iops: null
+      qd_used: null
+      bench_tool: null
+  - id: ssd1
+    kind: storage
+    class: external_ssd
+    capacity_gb: null
+    measured:
+      seq_read_gbps: null
+      rand_read_4k_iops: null
+      qd_used: null
+      bench_tool: null
+
+links:
+  - from: unified0
+    to: gpu0
+    via: unified
+    available: true
+    measured:
+      h2d_gbps: null
+      d2h_gbps: null
+  - from: ssd0
+    to: unified0
+    via: internal
+    measured:
+      seq_read_gbps: null
+  - from: ssd1
+    to: unified0
+    via: thunderbolt
+    measured:
+      seq_read_gbps: null
+
+envelope:
+  power_w:
+    rated: null
+    measured_idle: null
+    measured_load: null
+  thermal_headroom: unknown

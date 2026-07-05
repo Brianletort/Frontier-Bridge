@@ -56,6 +56,24 @@ _QUANT_PREFERENCE = ["q4", "fp8", "q8", "q2", "bf16"]
 
 _HOT_KV_WINDOW_CAP = 32768
 
+# Link classes that put a resource "outside the box" (RFC 0002). Memory behind
+# these links is never primary while an internal candidate exists; compute-
+# attached memory behind them (eGPU VRAM) becomes a resident island, not a
+# streaming tier.
+_EXTERNAL_VIAS = {"thunderbolt", "usb4", "ethernet"}
+
+# Documented sorting priors (GB/s) used ONLY to order storage tiers when link
+# bandwidth is unmeasured (RFC 0002). Never used in streaming math — those
+# numbers stay null until measured. Disclosed via the tier-order risk.
+_STORAGE_SORT_PRIOR_GBPS = {
+    "nvme": 5.0,
+    "internal_ssd": 5.0,
+    "external_ssd": 2.5,
+    "nas": 1.0,
+    "sata": 0.5,
+    "other": 0.1,
+}
+
 
 class PlanError(Exception):
     """Unrecoverable planner input error (unknown profile, workload, etc.)."""
@@ -85,6 +103,50 @@ def _memory_nodes(hw: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
 
 def _storage_nodes(hw: dict[str, Any]) -> list[dict[str, Any]]:
     return [n for n in hw.get("nodes", []) if n.get("kind") == "storage"]
+
+
+def _is_external_pool(hw: dict[str, Any], mem_node: dict[str, Any]) -> bool:
+    """True when every link joining this pool (and its attached compute) to the
+    rest of the graph is an external-class link (thunderbolt/usb4/ethernet)."""
+    group = {mem_node["id"]}
+    if mem_node.get("attached_to"):
+        group.add(mem_node["attached_to"])
+    vias = []
+    for link in hw.get("links", []):
+        endpoints = {link.get("from"), link.get("to")}
+        if endpoints & group and not endpoints <= group:
+            vias.append(link.get("via"))
+    return bool(vias) and all(v in _EXTERNAL_VIAS for v in vias)
+
+
+def _storage_effective_gbps(hw: dict[str, Any], node: dict[str, Any]) -> float | None:
+    """Measured bandwidth of the link out of this storage node, falling back to
+    the node's own microbench. None means unmeasured — never guessed."""
+    for link in hw.get("links", []):
+        if node["id"] in (link.get("from"), link.get("to")):
+            measured = link.get("measured") or {}
+            if measured.get("seq_read_gbps") is not None:
+                return measured["seq_read_gbps"]
+    return (node.get("measured") or {}).get("seq_read_gbps")
+
+
+def _ranked_storage(hw: dict[str, Any]) -> tuple[list[dict[str, Any]], bool]:
+    """Storage pools ordered fast-to-slow by effective measured bandwidth
+    (RFC 0002 tier normalization). Unmeasured pools sort by documented class
+    priors; the returned flag says whether priors decided an ordering."""
+    entries: list[tuple[dict[str, Any], float | None]] = [
+        (node, _storage_effective_gbps(hw, node)) for node in _storage_nodes(hw)
+    ]
+    entries.sort(
+        key=lambda item: (
+            item[1]
+            if item[1] is not None
+            else _STORAGE_SORT_PRIOR_GBPS.get(item[0].get("class"), 0.0)
+        ),
+        reverse=True,
+    )
+    priors_used = len(entries) > 1 and any(bw is None for _, bw in entries)
+    return [node for node, _ in entries], priors_used
 
 
 def _pick_quant(entries: list[dict[str, Any]], forced: str | None) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -189,17 +251,26 @@ def generate_plan(
             f"context_budget_exceeds_claimed_max: {context_budget} > {context_max}"
         )
 
+    # Primary pool selection (RFC 0002): device_local beats unified, and memory
+    # behind an external-class link (eGPU VRAM over Thunderbolt) is never
+    # primary while an internal candidate exists — it becomes an island instead.
     memory = _memory_nodes(hw)
-    primary_pool = (memory.get("device_local") or memory.get("unified") or [None])[0]
+    fast_pools = (memory.get("device_local") or []) + (memory.get("unified") or [])
+    internal_fast = [n for n in fast_pools if not _is_external_pool(hw, n)]
+    external_fast = [n for n in fast_pools if _is_external_pool(hw, n)]
+    primary_pool = (internal_fast or external_fast or [None])[0]
     if primary_pool is None:
         reasons.append("no_gpu_memory: hardware profile has no device_local or unified memory node")
 
     if reasons:
         return refuse(reasons)
 
+    primary_is_external = primary_pool in external_fast
+    island_pools = [n for n in external_fast if n["id"] != primary_pool["id"]]
+
     system_pool = (memory.get("system") or [None])[0]
-    storage = _storage_nodes(hw)
-    storage_pool = storage[0] if storage else None
+    ranked_storage, storage_priors_used = _ranked_storage(hw)
+    storage_pool = ranked_storage[0] if ranked_storage else None
 
     size_gb = artifact.get("size_gb")
     size_estimated = False
@@ -299,6 +370,27 @@ def generate_plan(
         }
     if storage_pool is not None:
         routed_experts["l2"] = {"node": storage_pool["id"], "mode": "stream_on_miss"}
+    if len(ranked_storage) > 1:
+        # Slower storage stays in the plan as the next backstop tier.
+        routed_experts["l3"] = {"node": ranked_storage[1]["id"], "mode": "stream_on_miss"}
+
+    if island_pools:
+        # Compute-attached memory behind a slow external link (eGPU VRAM over
+        # Thunderbolt): a fixed expert subset lives there permanently — never
+        # streamed across the link per token (RFC 0002).
+        island = island_pools[0]
+        island_budget = (
+            round((island.get("capacity_gb") or 0) * 0.9, 1)
+            if island.get("capacity_gb")
+            else None
+        )
+        routed_experts["island"] = {
+            "node": island["id"],
+            "budget_gb": island_budget,
+            "mode": "resident",
+            "policy": "static_hotlist",
+            "expert_layer_capacity": _expert_capacity(island_budget),
+        }
 
     kv_cache: dict[str, Any] = {
         "hot": {"node": primary_id, "window_tokens": hot_window_tokens},
@@ -417,6 +509,12 @@ def generate_plan(
         risks.append("kv_footprint_unmeasured_context_budget_not_validated")
     if workload in ("coding_agent", "multi_agent", "tool_calling"):
         risks.append("agent_workloads_are_decode_latency_sensitive")
+    if island_pools:
+        risks.append("island_placement_requires_runtime_multi_gpu_support")
+    if primary_is_external:
+        risks.append("primary_memory_behind_external_link_bandwidth_constrained")
+    if storage_priors_used:
+        risks.append("tier_order_uses_class_priors_where_links_unmeasured")
 
     # Anything built on estimates or streaming is experimental, never recommended.
     verdict = "experimental" if (size_estimated or not fits_in_memory) else "recommended"

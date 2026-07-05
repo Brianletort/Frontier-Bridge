@@ -128,7 +128,7 @@
           "if": { "properties": { "kind": { "const": "storage" } } },
           "then": {
             "properties": {
-              "class": { "enum": ["nvme", "sata", "internal_ssd", "other"] },
+              "class": { "enum": ["nvme", "sata", "internal_ssd", "external_ssd", "nas", "other"] },
               "capacity_gb": { "$ref": "#/$defs/nullableNumber" },
               "pcie": {
                 "type": "object",
@@ -168,7 +168,7 @@
       "properties": {
         "from": { "type": "string" },
         "to": { "type": "string" },
-        "via": { "enum": ["pcie", "gds", "unified", "nvlink", "ethernet", "internal", "other"] },
+        "via": { "enum": ["pcie", "gds", "unified", "nvlink", "ethernet", "internal", "thunderbolt", "usb4", "other"] },
         "gen": { "type": ["integer", "null"] },
         "lanes": { "type": ["integer", "null"] },
         "available": { "$ref": "#/$defs/tristate" },

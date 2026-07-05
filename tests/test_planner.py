@@ -202,6 +202,68 @@ def test_deepseek_q2_fits_m5_max_and_is_recommended(repo_root):
     assert "decode_latency_spikes_on_expert_miss" not in plan["risks"]
 
 
+def test_external_ssd_ranks_below_internal_with_disclosed_prior(repo_root):
+    """RFC 0002: with both drives unmeasured, the internal SSD outranks the
+    Thunderbolt drive by documented class prior — and the plan says so."""
+    plan = generate_plan(
+        repo_root, "glm-5.2", "m5_max_128gb_tb5_ssd", "coding_agent", 32768
+    )
+    tiers = plan["placement"]["tiered"]["routed_experts"]
+    assert tiers["l2"]["node"] == "ssd0"
+    assert tiers["l3"]["node"] == "ssd1"
+    assert tiers["l3"]["mode"] == "stream_on_miss"
+    assert "tier_order_uses_class_priors_where_links_unmeasured" in plan["risks"]
+    assert validate_instance(plan) == []
+
+
+def test_measured_external_link_reorders_storage_tiers(repo_root, tmp_path):
+    """RFC 0002: tiers are bandwidth classes, not device categories. A measured
+    fast external link outranks an unmeasured internal drive — measurement
+    decides, and no prior-order risk is recorded for the measured winner."""
+    import shutil
+
+    import yaml
+
+    stub_root = tmp_path
+    shutil.copytree(repo_root / "model_profiles", stub_root / "model_profiles")
+    shutil.copytree(repo_root / "results", stub_root / "results")
+    hw_dir = stub_root / "hardware_profiles"
+    hw_dir.mkdir()
+    src = repo_root / "hardware_profiles" / "m5_max_128gb_tb5_ssd.yaml"
+    data = yaml.safe_load(src.read_text())
+    for link in data["links"]:
+        if link["from"] == "ssd1":
+            link["measured"]["seq_read_gbps"] = 6.0  # measured TB5 drive
+    (hw_dir / "m5_max_128gb_tb5_ssd.yaml").write_text(
+        yaml.safe_dump(data, sort_keys=False)
+    )
+
+    plan = generate_plan(
+        stub_root, "glm-5.2", "m5_max_128gb_tb5_ssd", "coding_agent", 32768
+    )
+    tiers = plan["placement"]["tiered"]["routed_experts"]
+    # 6.0 GB/s measured beats the internal drive's unmeasured 5.0 prior.
+    assert tiers["l2"]["node"] == "ssd1"
+    assert tiers["l3"]["node"] == "ssd0"
+
+
+def test_egpu_becomes_resident_island_never_primary(repo_root):
+    """RFC 0002: eGPU VRAM behind Thunderbolt is a resident island — a fixed
+    expert subset lives there; it is never the primary pool and never a
+    per-token streaming tier."""
+    plan = generate_plan(
+        repo_root, "glm-5.2", "rtx5090_128ram_egpu_4090", "coding_agent", 32768
+    )
+    assert plan["placement"]["resident"]["dense_core"] == "vram0"
+    island = plan["placement"]["tiered"]["routed_experts"]["island"]
+    assert island["node"] == "vram1"
+    assert island["mode"] == "resident"
+    assert island["policy"] == "static_hotlist"
+    assert island["budget_gb"] == round(24 * 0.9, 1)
+    assert "island_placement_requires_runtime_multi_gpu_support" in plan["risks"]
+    assert validate_instance(plan) == []
+
+
 def test_context_over_claimed_max_is_refused(repo_root):
     plan = generate_plan(
         repo_root, "glm-5.2", "m5_max_128gb", "long_context", 2_000_000
