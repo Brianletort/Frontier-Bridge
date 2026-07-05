@@ -1,7 +1,7 @@
 schema_version: plan/v1
-plan_id: apple-m5-max-137gb-detected-glm-5.2-q4-routed-coding-agent-32768
+plan_id: m5-max-128gb-glm-5.2-q4-routed-coding-agent-32768
 inputs:
-  hwprofile: apple_m5_max_137gb_detected
+  hwprofile: m5_max_128gb
   modelprofile: glm-5.2/q4_routed
   workload: coding_agent
   context_budget: 32768
@@ -15,8 +15,9 @@ placement:
     routed_experts:
       l0:
         node: unified0
-        budget_gb: 100.2
+        budget_gb: 94.2
         policy: layer_aware_lru
+        expert_layer_capacity: 4262
       l2:
         node: ssd0
         mode: stream_on_miss
@@ -45,7 +46,13 @@ expected:
     p50: null
     source: null
   usability_class: unrated
+  streaming:
+    worst_case_miss_gb_per_token: 13.97
+    moe_layers: 79
+    storage_seq_read_gbps: null
+    worst_case_miss_seconds_per_token: null
+    source: computed_from_measured_gguf_headers_and_links
 risks:
 - decode_latency_spikes_on_expert_miss
-- model_size_estimated_from_param_count_not_measured
+- ssd_bandwidth_unmeasured_streaming_performance_unknown
 - agent_workloads_are_decode_latency_sensitive
