@@ -152,11 +152,13 @@ The measurement pipeline is built and tested; the first verified rows are the cu
 | Capability | State |
 |---|---|
 | Four versioned schemas (`hwprofile`, `modelprofile`, `plan`, `benchresult` — [RFC 0001](rfcs/0001-resource-graph-schemas.md)) | Ratified, frozen at v1 (additive only) |
-| `frontier detect` | Live on macOS/Apple Silicon; Linux/NVIDIA + WSL2 + GB10 unified-memory paths written and fixture-tested, pending real hardware |
-| Pinned model artifacts | GLM-5.2 Q2/Q4 routed and DeepSeek V4 Flash Q2/Q4 imatrix: sha256 per shard |
-| `frontier catalog inspect-gguf` | Measures dense vs routed-expert splits from GGUF headers via range requests — no full download |
-| `frontier plan` (rules-based planner v0) | Measured memory model, tiered placement with expert-capacity counts, streaming worst-case math, graceful refusal |
-| `frontier run` / `frontier bench` | sha256 verification, runtime launch, health-check; TTFT / decode tps / p50-p95-p99, four prompt suites → `benchresult/v1` |
+| `frontier detect` | Live on macOS/Apple Silicon; Linux CPU/RAM/disk path verified in containers; NVIDIA GPU + WSL2 + GB10 paths fixture-tested, pending real hardware ([verification checklist](docs/linux_verification.md)) |
+| Pinned model artifacts | Seven families: GLM-5.2, DeepSeek V4 Flash, Kimi K2.6, Kimi K2.7-Code, MiniMax M3, Qwen3-Coder-480B, gpt-oss-120b — sha256 per shard |
+| `frontier catalog add` / `inspect-gguf` | Ingests HF GGUF repos into measured model profiles (header-measured memory model, LFS sha256 pins) — no full download |
+| `frontier plan` (rules-based planner v0) | Measured memory model, tiered placement with expert-capacity counts, measured KV budgeting, streaming worst-case math at expert-read granularity, enforced tiering flags, graceful refusal |
+| `frontier setup` | Runtime install (Homebrew for llama.cpp), resumable hash-verified shard downloads with free-space checks, launch |
+| `frontier run` / `frontier bench` | sha256 verification, runtime launch, health-check; TTFT / decode tps / p50-p95-p99, four prompt suites → `benchresult/v1`; `bench sweep-offload`, `context-ladder`, `ssd-stream` experiment harnesses |
+| `frontier ui` | Local web app (stdlib-only): hardware view, catalog, side-by-side plan comparison, one-click setup, results matrix |
 | `frontier results matrix` | Folds committed results into the compatibility matrix |
 | CI | GitHub Actions: pytest + schema validation on Linux and macOS |
 
@@ -221,6 +223,7 @@ model_profiles/       committed modelprofile/v1 YAML per model/quant
 plans/                example plan/v1 outputs
 results/              benchmark results (community and maintainer-verified)
 runtime_adapters/     per-runtime adapter status
+notebooks/            reproducible figures generated from committed profiles
 docs/                 roadmap, playbooks, enterprise bridge, launch checklist
 src/frontier_bridge/  the CLI and library
 tests/                pytest suite
