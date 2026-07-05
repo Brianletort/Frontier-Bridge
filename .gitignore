@@ -10,6 +10,7 @@ venv/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.ipynb_checkpoints/
 
 # Detected local profiles (commit reference profiles deliberately, not by accident)
 hardware_profiles/local/

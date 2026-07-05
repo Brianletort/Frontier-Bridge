@@ -1,0 +1,15 @@
+---
+description: Results integrity and number provenance — the project's brand
+alwaysApply: true
+---
+
+# Provenance rules (results integrity)
+
+Every number in this repo carries provenance. These rules are the brand; do not weaken them.
+
+- **Vocabulary is fixed**: `measured` = hardware telemetry we ran ourselves; `claimed` = upstream metadata with a source; `verified` = benchmark rows backed by all four pins (plan hash, model sha256, runtime commit, hwprofile id) plus two independent reproductions. Nothing else may use these words.
+- **Never invent numbers.** Unknown values are `null` or `unknown` — in schemas, profiles, docs, and prose. Do not fill in spec-sheet guesses, "typical" values presented as facts, or estimated bandwidths without labeling them estimates.
+- **Estimates are quarantined.** Anything derived rather than measured must say so where it appears (e.g. `model_size_estimated_from_param_count_not_measured`).
+- **The compatibility matrix is a fold over committed `benchresult/v1` files** — never hand-edit it, and never move a row past `unrated` without a qualifying result file.
+- **Refusal is a first-class output.** Do not soften `not_recommended` verdicts or convert refusals into warnings.
+- These rules apply equally to maintainer, sponsored, and community contributions (see GOVERNANCE.md).

@@ -1,0 +1,13 @@
+---
+description: Schema freeze and RFC discipline for schema or RFC changes
+globs: schemas/**,rfcs/**,src/frontier_bridge/schemas/**
+alwaysApply: false
+---
+
+# Schema discipline
+
+- The v1 schemas (`hwprofile/v1`, `modelprofile/v1`, `plan/v1`, `benchresult/v1`) are **frozen**: only additive, backward-compatible changes are accepted until a v2 RFC is ratified.
+- Breaking changes require a new RFC in `rfcs/` (copy the structure of RFC 0001) and a version bump — never edit a ratified RFC's decisions in place.
+- Hardware profiles are **resource graphs** (nodes + links), never fixed `vram/ram/ssd` field sets. New machine shapes are new topology, not new schema fields.
+- Rated and measured values live in separate fields; keep it that way in any schema addition.
+- Update the JSON Schema files and the fixture tests together; `pytest` runs schema validation in CI on Linux and macOS.

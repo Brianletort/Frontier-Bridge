@@ -1,0 +1,14 @@
+---
+description: Documentation voice and sponsorship framing for markdown files
+globs: "*.md,docs/**/*.md"
+alwaysApply: false
+---
+
+# Doc voice
+
+- **Honest limits, stated plainly.** Lead with what is measured and what is not. "Unknown, and the profiles say so" is a valid answer; hopeful hedging is not.
+- **Refusal is a feature.** Frame `not_recommended` verdicts as the product working, never as a shortcoming to apologize for.
+- **No marketing superlatives.** No "blazing fast," "revolutionary," "game-changing." The numbers and their provenance do the persuading.
+- **Sponsor mentions stay high-level.** Digital Realty is named as sponsor only. Do not describe what the sponsorship funds or provides, quote platform statistics, or speak on the sponsor's behalf. Always pair a sponsor mention with the independence statement (technical decisions unchanged; results-integrity rule applies equally).
+- **The operating thesis** is the project's own, unattributed: "build the base, rent the spike."
+- Claims about models use `claimed` language with sources; usability statements require verified benchmark rows.

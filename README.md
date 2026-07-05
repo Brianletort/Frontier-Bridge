@@ -126,7 +126,7 @@ Sparse MoE is what makes the new hierarchy workable. A 744B-total model activate
 <img src="docs/assets/memory-hierarchy.png" alt="The memory hierarchy: active experts stay fast in VRAM and unified memory while inactive experts tier across system RAM and NVMe" width="82%" />
 </div>
 
-Everything is a graph of resources and links, **measured where possible, `null` where not — never assumed**. A hardware profile has no hardcoded `vram/ram/ssd` fields — it has memory, compute, storage, and network *nodes* joined by *links* with measured bandwidth. An RTX 6000 box, a GB10 with coherent unified memory, and a Mac Studio are the same schema with different topology. So is a multi-GPU rack node — which is what makes scaling up a schema change, not a rewrite. Design details in [RFC 0001](rfcs/0001-resource-graph-schemas.md).
+Everything is a graph of resources and links, **measured where possible, `null` where not — never assumed**. A hardware profile has no hardcoded `vram/ram/ssd` fields — it has memory, compute, storage, and network *nodes* joined by *links* with measured bandwidth. An RTX 6000 box, a GB10 with coherent unified memory, and a Mac Studio are the same schema with different topology. So is a multi-GPU rack node — which is what makes scaling up a schema change, not a rewrite. And because tiers are *bandwidth classes rather than device categories*, Thunderbolt SSDs, eGPU enclosures, and NAS boxes slot in wherever their measured links put them ([RFC 0002](rfcs/0002-normalized-tiers-external-resources.md)). Design details in [RFC 0001](rfcs/0001-resource-graph-schemas.md).
 
 ```mermaid
 flowchart LR
