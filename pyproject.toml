@@ -30,6 +30,10 @@ dependencies = [
 dev = [
   "pytest>=8.0",
 ]
+notebook = [
+  "matplotlib>=3.8",
+  "ipykernel>=6",
+]
 
 [project.scripts]
 frontier = "frontier_bridge.cli:app"
@@ -42,7 +46,7 @@ Issues = "https://github.com/Brianletort/Frontier-Bridge/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-frontier_bridge = ["schemas/*.json", "bench/prompts/*.jsonl"]
+frontier_bridge = ["schemas/*.json", "bench/prompts/*.jsonl", "ui/static/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

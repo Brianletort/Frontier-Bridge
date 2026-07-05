@@ -114,7 +114,13 @@ That refusal is the product working as designed. A planner you can trust when it
 
 ## How it works
 
-Sparse MoE is the working hypothesis. A 744B-total model activates ~40B parameters per token (upstream claims) — so the question worth testing is not "does 744B fit in memory" but "**can the active path stay fast while inactive experts tier across RAM and SSD?**" That is a planning problem, and it is the problem this project works on.
+The memory hierarchy from computer-organization class is back — orders of magnitude bigger at every level, with the cache line replaced by the expert slice, and this time **no hardware manages it for you**. The planner is the missing cache controller. The full formalization is in [docs/memory_hierarchy.md](docs/memory_hierarchy.md):
+
+<div align="center">
+<img src="docs/assets/hierarchy-old-vs-new.png" alt="Two pyramids side by side: the classic registers/cache/DRAM/disk hierarchy, and the AI hierarchy of VRAM, unified memory, system RAM, and NVMe SSD" width="92%" />
+</div>
+
+Sparse MoE is what makes the new hierarchy workable. A 744B-total model activates ~40B parameters per token (upstream claims) — so the question worth testing is not "does 744B fit in memory" but "**can the active path stay fast while inactive experts tier across RAM and SSD?**" That is a planning problem, and it is the problem this project works on.
 
 <div align="center">
 <img src="docs/assets/memory-hierarchy.png" alt="The memory hierarchy: active experts stay fast in VRAM and unified memory while inactive experts tier across system RAM and NVMe" width="82%" />

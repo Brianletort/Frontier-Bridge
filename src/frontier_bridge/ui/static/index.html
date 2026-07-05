@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frontier Bridge</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #2d333b; --text: #e6edf3;
+    --muted: #8b949e; --accent: #58a6ff; --ok: #3fb950; --warn: #d29922;
+    --bad: #f85149; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  header {
+    padding: 20px 28px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: baseline; gap: 14px;
+  }
+  header h1 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: .2px; }
+  header span { color: var(--muted); font-size: 13px; }
+  main {
+    display: grid; grid-template-columns: 340px 1fr; gap: 20px;
+    padding: 20px 28px; max-width: 1500px; margin: 0 auto;
+  }
+  section {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 20px;
+  }
+  h2 {
+    margin: 0 0 12px; font-size: 12px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .8px;
+  }
+  select, input, button {
+    background: #0d1117; color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 10px; font-size: 14px; width: 100%;
+  }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  button {
+    cursor: pointer; background: #1f6feb; border-color: #1f6feb; color: #fff;
+    font-weight: 600; margin-top: 14px; transition: background .15s;
+  }
+  button:hover { background: #388bfd; }
+  button.secondary { background: transparent; color: var(--accent); border-color: var(--border); }
+  button.danger { background: transparent; color: var(--bad); border-color: var(--border); }
+  button:disabled { opacity: .45; cursor: default; }
+  .hw-item, .model-item {
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px;
+    margin-bottom: 7px; font-size: 13px;
+  }
+  .hw-item b, .model-item b { font-weight: 600; }
+  .hw-item .sub, .model-item .sub { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  .badge {
+    display: inline-block; padding: 1px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 600; vertical-align: 1px;
+  }
+  .badge.recommended { background: #1a2f1f; color: var(--ok); }
+  .badge.experimental { background: #2e2610; color: var(--warn); }
+  .badge.not_recommended { background: #2e1517; color: var(--bad); }
+  .badge.verified { background: #1a2f1f; color: var(--ok); }
+  .badge.claimed { background: #21262d; color: var(--muted); }
+  .plans { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+  .plan-card {
+    border: 1px solid var(--border); border-radius: 9px; padding: 14px;
+    background: #0d1117; font-size: 13px; position: relative;
+  }
+  .plan-card h3 { margin: 0 0 4px; font-size: 14px; }
+  .plan-card .close {
+    position: absolute; top: 8px; right: 10px; cursor: pointer;
+    color: var(--muted); font-size: 15px; background: none; border: none;
+    width: auto; margin: 0; padding: 2px 6px;
+  }
+  .tierbar { display: flex; height: 14px; border-radius: 4px; overflow: hidden; margin: 8px 0 3px; }
+  .tierbar div { min-width: 3px; }
+  .t-l0 { background: #1f6feb; } .t-l1 { background: #8957e5; } .t-l2 { background: #d29922; }
+  .legend { color: var(--muted); font-size: 11px; margin-bottom: 6px; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin: 0 4px 0 10px; }
+  .kv { color: var(--muted); }
+  .kv b { color: var(--text); font-weight: 600; font-family: var(--mono); }
+  .risks { margin: 8px 0 0; padding-left: 16px; color: var(--muted); font-size: 12px; }
+  .launch {
+    font-family: var(--mono); font-size: 11px; background: #161b22; padding: 8px;
+    border-radius: 6px; margin-top: 8px; overflow-x: auto; white-space: pre;
+    border: 1px solid var(--border); color: #a5d6ff;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  td.num { font-family: var(--mono); }
+  #log {
+    font-family: var(--mono); font-size: 12px; background: #0d1117; border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px; height: 180px; overflow-y: auto; white-space: pre-wrap;
+    margin-top: 10px; color: var(--muted);
+  }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .s-running { background: var(--warn); } .s-ready { background: var(--ok); }
+  .s-failed { background: var(--bad); } .s-idle, .s-stopped { background: var(--muted); }
+  .row { display: flex; gap: 10px; } .row > * { flex: 1; }
+  .empty { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Frontier Bridge</h1>
+  <span>profile hardware &middot; plan VRAM / RAM / SSD tiers &middot; setup &middot; measure</span>
+</header>
+<main>
+  <div><!-- left column -->
+    <section>
+      <h2>Hardware profiles</h2>
+      <div id="hardware"></div>
+      <button class="secondary" id="detectBtn">Detect this machine</button>
+    </section>
+    <section>
+      <h2>Model catalog</h2>
+      <div id="models"></div>
+    </section>
+  </div>
+  <div><!-- right column -->
+    <section>
+      <h2>Plan a configuration</h2>
+      <div class="row">
+        <div><label>Model</label><select id="selModel"></select></div>
+        <div><label>Hardware</label><select id="selHardware"></select></div>
+      </div>
+      <div class="row">
+        <div><label>Workload</label>
+          <select id="selWorkload">
+            <option>chat</option><option>coding_agent</option><option>long_context</option>
+            <option>tool_calling</option><option>rag</option><option>batch_summarization</option>
+            <option>multi_agent</option><option>data_analysis</option>
+          </select>
+        </div>
+        <div><label>Context tokens</label><input id="inpCtx" type="number" value="32768"></div>
+        <div><label>Quant (optional)</label><select id="selQuant"><option value="">auto</option></select></div>
+      </div>
+      <button id="planBtn">Generate plan</button>
+    </section>
+    <section>
+      <h2>Plans &mdash; compare side by side</h2>
+      <div class="legend">tiers:<i class="t-l0"></i>L0 GPU/unified<i class="t-l1"></i>L1 system RAM<i class="t-l2"></i>L2 SSD stream</div>
+      <div class="plans" id="plans"><span class="empty">No plans yet — generate one above.</span></div>
+    </section>
+    <section>
+      <h2>Setup job <span id="jobStatus"></span></h2>
+      <div class="row">
+        <button class="danger" id="stopBtn">Stop runtime</button>
+      </div>
+      <div id="log">idle</div>
+    </section>
+    <section>
+      <h2>Verified results matrix</h2>
+      <div id="matrix"></div>
+    </section>
+  </div>
+</main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+let STATE = { hardware: [], models: [], matrix: [] };
+let PLANS = [];
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+
+function fmt(v, suffix) { return v == null ? "—" : v + (suffix || ""); }
+
+async function loadState() {
+  STATE = await api("/api/state");
+  $("hardware").innerHTML = STATE.hardware.map(h =>
+    `<div class="hw-item"><b>${h.profile_id}</b> <span class="sub">(${h.method})</span><br><span class="sub">${h.summary}</span></div>`
+  ).join("") || '<span class="empty">none</span>';
+  $("models").innerHTML = STATE.models.map(m =>
+    `<div class="model-item"><b>${m.model_id}</b><br><span class="sub">${m.summary}</span><br>` +
+    m.quants.map(q => `<span class="sub">${q.quant} ${fmt(q.size_gb, "GB")}${q.pinned ? " ✓pinned" : ""}</span>`).join("<br>") +
+    `</div>`
+  ).join("");
+  $("selModel").innerHTML = STATE.models.map(m => `<option>${m.model_id}</option>`).join("");
+  $("selHardware").innerHTML = STATE.hardware.map(h => `<option>${h.profile_id}</option>`).join("");
+  refreshQuants();
+  renderMatrix();
+}
+
+function refreshQuants() {
+  const m = STATE.models.find(x => x.model_id === $("selModel").value);
+  $("selQuant").innerHTML = '<option value="">auto</option>' +
+    (m ? m.quants.map(q => `<option>${q.quant}</option>`).join("") : "");
+}
+
+function renderMatrix() {
+  if (!STATE.matrix.length) { $("matrix").innerHTML = '<span class="empty">No benchmark rows committed yet.</span>'; return; }
+  $("matrix").innerHTML = "<table><tr><th>Hardware</th><th>Model</th><th>Workload</th><th>Status</th><th>Usability</th><th>Decode tps</th><th>TTFT ms</th><th>Ctx</th></tr>" +
+    STATE.matrix.map(r =>
+      `<tr><td>${r.hwprofile}</td><td>${r.modelprofile}</td><td>${r.workload}</td>` +
+      `<td><span class="badge ${r.status}">${r.status}</span></td><td>${r.usability}</td>` +
+      `<td class="num">${fmt(r.decode_tps)}</td><td class="num">${fmt(r.ttft_ms)}</td><td class="num">${fmt(r.context)}</td></tr>`
+    ).join("") + "</table>";
+}
+
+function tierBar(plan) {
+  const tiers = ((plan.placement || {}).tiered || {}).routed_experts || {};
+  const l0 = (tiers.l0 || {}).budget_gb || 0;
+  const l1 = (tiers.l1 || {}).budget_gb || 0;
+  const hasL2 = !!tiers.l2;
+  const total = l0 + l1 || 1;
+  const l2w = hasL2 ? 12 : 0;
+  return `<div class="tierbar">` +
+    (l0 ? `<div class="t-l0" style="flex:${(l0 / total) * (100 - l2w)}" title="L0 ${l0}GB"></div>` : "") +
+    (l1 ? `<div class="t-l1" style="flex:${(l1 / total) * (100 - l2w)}" title="L1 ${l1}GB"></div>` : "") +
+    (hasL2 ? `<div class="t-l2" style="flex:${l2w}" title="L2 stream on miss"></div>` : "") +
+    `</div>`;
+}
+
+function renderPlans() {
+  if (!PLANS.length) { $("plans").innerHTML = '<span class="empty">No plans yet — generate one above.</span>'; return; }
+  $("plans").innerHTML = PLANS.map((p, i) => {
+    const exp = p.expected || {};
+    const tps = (exp.decode_tps || {});
+    const launch = ((p.runtime || {}).launch || "").split("  #")[0];
+    const refusal = p.verdict === "not_recommended";
+    const tiers = ((p.placement || {}).tiered || {}).routed_experts || {};
+    return `<div class="plan-card">
+      <button class="close" onclick="removePlan(${i})">&times;</button>
+      <h3>${p.inputs.modelprofile}</h3>
+      <div class="kv">${p.inputs.hwprofile} &middot; ${p.inputs.workload} &middot; ${p.inputs.context_budget} ctx</div>
+      <div style="margin:6px 0"><span class="badge ${p.verdict}">${p.verdict}</span>
+        &nbsp;<span class="kv">expected: <b>${tps.p50 != null ? tps.p50 + " tps" : "unmeasured"}</b> (${exp.usability_class || "unrated"})</span></div>
+      ${refusal
+        ? `<ul class="risks">${(p.reasons || []).map(r => `<li>${r}</li>`).join("")}</ul>`
+        : tierBar(p) +
+          `<div class="kv" style="font-size:12px">L0 <b>${fmt((tiers.l0 || {}).budget_gb, "GB")}</b>` +
+          ((tiers.l1) ? ` &middot; L1 <b>${fmt(tiers.l1.budget_gb, "GB")}</b>${tiers.l1.pinned ? " (pinned)" : ""}` : "") +
+          ((tiers.l2) ? ` &middot; L2 <b>stream</b>` : "") + `</div>` +
+          `<ul class="risks">${(p.risks || []).slice(0, 4).map(r => `<li>${r}</li>`).join("")}</ul>` +
+          `<div class="launch">${launch}</div>` +
+          `<button onclick="setup(${i})">Setup &amp; run</button>`}
+    </div>`;
+  }).join("");
+}
+
+function removePlan(i) { PLANS.splice(i, 1); renderPlans(); }
+
+async function generatePlan() {
+  $("planBtn").disabled = true;
+  try {
+    const q = new URLSearchParams({
+      model: $("selModel").value, hardware: $("selHardware").value,
+      workload: $("selWorkload").value, ctx: $("inpCtx").value,
+    });
+    if ($("selQuant").value) q.set("quant", $("selQuant").value);
+    const plan = await api("/api/plan?" + q);
+    PLANS.unshift(plan);
+    if (PLANS.length > 6) PLANS.pop();
+    renderPlans();
+  } catch (e) { alert(e.message); }
+  $("planBtn").disabled = false;
+}
+
+async function setup(i) {
+  try {
+    await api("/api/setup", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: PLANS[i], launch: true }),
+    });
+  } catch (e) { alert(e.message); }
+}
+
+async function detect() {
+  $("detectBtn").disabled = true; $("detectBtn").textContent = "Detecting...";
+  try {
+    const profile = await api("/api/detect", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    alert("Detected: " + profile.profile_id + "\nSave it with: frontier detect -o hardware_profiles/local/" + profile.profile_id + ".yaml");
+  } catch (e) { alert(e.message); }
+  $("detectBtn").disabled = false; $("detectBtn").textContent = "Detect this machine";
+}
+
+async function pollJob() {
+  try {
+    const job = await api("/api/job");
+    $("jobStatus").innerHTML = `<span class="status-dot s-${job.status}"></span>${job.status}` +
+      (job.port ? ` &middot; <a href="http://127.0.0.1:${job.port}/v1/models" target="_blank" style="color:var(--accent)">:${job.port}/v1</a>` : "");
+    const log = $("log");
+    const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 8;
+    log.textContent = job.log.length ? job.log.join("\n") : "idle";
+    if (atBottom) log.scrollTop = log.scrollHeight;
+  } catch (e) { /* server restarting */ }
+}
+
+$("planBtn").onclick = generatePlan;
+$("detectBtn").onclick = detect;
+$("stopBtn").onclick = () => api("/api/job/stop", { method: "POST" });
+$("selModel").onchange = refreshQuants;
+loadState();
+setInterval(pollJob, 1500);
+</script>
+</body>
+</html>

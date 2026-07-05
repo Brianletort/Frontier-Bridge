@@ -37,6 +37,7 @@ from frontier_bridge.provision import (
     install_hint,
 )
 from frontier_bridge.results import fold_matrix, load_results, render_markdown
+from frontier_bridge.ui import serve as ui_serve
 from frontier_bridge.runner import (
     RunError,
     build_launch,
@@ -393,6 +394,21 @@ def results_matrix(
         typer.echo(f"Wrote {output} ({len(rows)} row(s))")
     else:
         typer.echo(markdown)
+
+
+@app.command()
+def ui(
+    port: int = typer.Option(7861, "--port", help="Port for the local web UI."),
+    open_browser: bool = typer.Option(
+        True, "--open/--no-open", help="Open the UI in the default browser."
+    ),
+) -> None:
+    """Local web UI: hardware view, model catalog, side-by-side plan comparison,
+    one-click setup/run, and the verified results matrix.
+
+    Serves on 127.0.0.1 only. The UI calls the same library code as the CLI.
+    """
+    ui_serve(port=port, open_browser=open_browser)
 
 
 @app.command()
