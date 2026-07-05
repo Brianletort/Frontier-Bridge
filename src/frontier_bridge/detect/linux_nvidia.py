@@ -16,12 +16,16 @@ Environment handling:
   expressed as one ``unified`` memory node, like the macOS path — same schema,
   different link topology.
 
-Untested caveat: this path was written on macOS against fixture outputs. It is
-fixture-tested (see tests/) but has not yet run on real Linux/NVIDIA hardware.
+Verification status: the CPU/RAM/disk path has run on real Linux (containers,
+x86_64) and emits schema-valid profiles; the NVIDIA GPU path is fixture-tested
+but has not yet run against a physical NVIDIA GPU. First runs on real GPU
+hardware should follow docs/linux_verification.md and contribute the resulting
+profile.
 """
 
 from __future__ import annotations
 
+import os
 import platform
 from typing import Any
 
@@ -107,6 +111,16 @@ def parse_lscpu(text: str | None) -> dict[str, Any]:
         elif key == "NUMA node(s)" and value.isdigit():
             info["numa_nodes"] = int(value)
     return info
+
+
+def parse_os_release(text: str | None) -> str | None:
+    """Extract PRETTY_NAME from /etc/os-release content."""
+    if not text:
+        return None
+    for line in text.splitlines():
+        if line.startswith("PRETTY_NAME="):
+            return line.partition("=")[2].strip().strip('"') or None
+    return None
 
 
 def parse_lsblk(text: str | None) -> list[dict[str, Any]]:
@@ -329,24 +343,29 @@ def detect(run_disk_bench: bool = True) -> dict[str, Any]:
     wsl2 = is_wsl2()
     unified = is_unified_memory_system(gpus, machine or "")
 
-    meminfo_text: str | None
-    try:
-        with open("/proc/meminfo", encoding="utf-8") as f:
-            meminfo_text = f.read()
-    except OSError:
-        meminfo_text = None
+    def _read(path: str) -> str | None:
+        try:
+            with open(path, encoding="utf-8") as f:
+                return f.read()
+        except OSError:
+            return None
 
     ssd_measured: dict[str, Any] = dict(_NULL_SSD_MEASURED)
     if run_disk_bench:
         ssd_measured = disk_read_bench()
 
+    cpu_info = parse_lscpu(run_command(["lscpu"]))
+    if cpu_info.get("cores") is None:
+        # Minimal containers/images lack lscpu; the kernel still knows.
+        cpu_info["cores"] = os.cpu_count()
+
     return build_profile(
         gpus=gpus,
-        ram_gb=parse_meminfo(meminfo_text),
-        cpu_info=parse_lscpu(run_command(["lscpu"])),
+        ram_gb=parse_meminfo(_read("/proc/meminfo")),
+        cpu_info=cpu_info,
         nvme_disks=parse_lsblk(run_command(["lsblk", "-dn", "-o", "NAME,TYPE,SIZE,TRAN", "-b"])),
         ssd_measured=ssd_measured,
-        os_version=None,
+        os_version=parse_os_release(_read("/etc/os-release")),
         kernel=platform.release() or None,
         wsl2=wsl2,
         unified=unified,

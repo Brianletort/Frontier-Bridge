@@ -67,6 +67,13 @@ def test_parse_lscpu():
     assert info["numa_nodes"] == 1
 
 
+def test_parse_os_release():
+    text = 'NAME="Debian GNU/Linux"\nPRETTY_NAME="Debian GNU/Linux 13 (trixie)"\n'
+    assert linux_nvidia.parse_os_release(text) == "Debian GNU/Linux 13 (trixie)"
+    assert linux_nvidia.parse_os_release(None) is None
+    assert linux_nvidia.parse_os_release("NAME=x\n") is None
+
+
 def test_parse_lsblk_keeps_only_nvme():
     disks = linux_nvidia.parse_lsblk(LSBLK_FIXTURE)
     assert len(disks) == 1
