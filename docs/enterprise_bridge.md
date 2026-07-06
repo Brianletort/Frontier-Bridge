@@ -36,8 +36,6 @@ The design point that makes this work: **the hardware profile schema is a resour
 
 The continuum maps onto a simple operating thesis: **build the base, rent the spike.** The owned tiers — workstation, lab server, private rack, colocation — are the base where steady-state AI workloads live; the cloud and partner tiers are where you rent capacity for the peaks (the "cloud-adjacent burst" profile in the Phase 6 list below is exactly that seam). Frontier Bridge's job is to make the base credible: measured proof of what each rung can run, and plans that carry forward when you move up one.
 
-The project is sponsored by [Digital Realty](https://www.digitalrealty.com/) — a natural fit, since a data center operator sits at the infrastructure end of this continuum and the connective-tissue layer benefits everyone on it. Sponsorship terms and independence are covered in [GOVERNANCE.md](../GOVERNANCE.md).
-
 ## What lands here (Phase 6+)
 
 Enterprise-bridge profiles, in the same `hwprofile/v1` schema:

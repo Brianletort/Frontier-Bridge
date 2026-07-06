@@ -6,11 +6,11 @@ The repo goes public when this checklist is complete — not before. Two gates, 
 
 Nothing public before G0.
 
-- [ ] Digital Realty legal sign-off on Apache 2.0 release and sponsorship attribution (README, NOTICE, GOVERNANCE)
-- [ ] Digital Realty comms/brand sign-off on the sponsorship language and use of platform facts (data center / metro / customer counts — verify current numbers against digitalrealty.com at publish time)
+- [ ] Legal review of the Apache 2.0 release (plus sponsorship attribution review, only if a sponsor is confirmed)
+- [ ] Sponsor comms/brand sign-off on any sponsorship language (only applicable once a sponsor is confirmed in writing — no attribution before then)
 - [ ] IP review checkpoint #1 complete: confirm the open/held split in [IP_NOTICE.md](../IP_NOTICE.md) (schemas, profiles, recipes, harness, basic LRU/hotlist/LFU policies → open; router-aware prefetch, workload hotlists, adaptive session cache, agent-loop persistence → held)
 - [ ] Name clearance: trademark + GitHub/PyPI/domain search for "Frontier Bridge"; backup name selected in case clearance fails
-- [ ] Chris's sponsorship confirmation in writing
+- [ ] Sponsorship confirmation in writing (no sponsor is named anywhere in the repo until this exists)
 - [ ] License headers / NOTICE file final
 
 ## Gate G1 — Launch with real numbers
@@ -28,7 +28,7 @@ The repo can be public but quiet after G0. Promotion waits for G1.
 
 1. Repo public on GitHub
 2. LocalLLaMA tester post — non-corporate voice, asking for RTX 6000 / 5090 / GB10 / M-series / Strix Halo testers and benchmark JSON submissions
-3. Digital Realty LinkedIn post — sponsorship framing: open engineering contribution to the AI infrastructure continuum
+3. LinkedIn post — open engineering contribution to the AI infrastructure continuum
 4. Hacker News — only after a demo video and reproducible numbers exist; HN punishes vapor
 
 ## Publishing mechanics

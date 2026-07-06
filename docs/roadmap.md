@@ -81,15 +81,15 @@ GB10 is never the critical path. Timebox it to one session.
    (`frontier results matrix`); usability labels never better than
    `usability_suggested`.
 2. **G0 paperwork — start now, in parallel with everything above** — it has
-   weeks of latency and zero code dependency: Digital Realty legal sign-off,
-   comms/brand review, IP review checkpoint #1, name clearance with a backup
-   name, sponsorship confirmation in writing. G0 is the plan's only external
-   dependency and its biggest schedule risk.
+   weeks of latency and zero code dependency: legal review, IP review
+   checkpoint #1, name clearance with a backup name, and — only if a sponsor
+   comes aboard — sponsorship confirmation in writing before any attribution.
+   G0 is the plan's only external dependency and its biggest schedule risk.
 3. Community scaffolding: benchmark-submission PR template,
    "good first profile" issues, GitHub Discussions.
 4. Launch sequence as written in
    [launch_checklist.md](launch_checklist.md): repo public → LocalLLaMA
-   tester post → Digital Realty LinkedIn → Hacker News only after a demo
+   tester post → LinkedIn → Hacker News only after a demo
    video and reproducible numbers exist.
 
 ## Phase 4 — Post-launch: CUDA expert-streaming spike (2 weeks, RTX 6000)

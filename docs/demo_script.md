@@ -75,6 +75,6 @@ Talking points:
 ## Close (30s)
 
 The continuum line: same profiles, plans, and benchmark standard from this
-workstation up through lab servers, private AI racks, and Digital Realty's
-connected infrastructure — moving up the bridge is a schema change, not a
+workstation up through lab servers, private AI racks, and colocation or
+cloud infrastructure — moving up the bridge is a schema change, not a
 rewrite.

@@ -169,7 +169,7 @@ The measurement pipeline is built and tested; the first verified rows are the cu
 - We do not make any frontier model run on consumer hardware. The goal is to make the best possible use of available infrastructure — turning models from impossible into runnable, and from runnable into useful, is the hypothesis the benchmarks exist to test.
 - Every number in this repo carries its provenance: **measured** applies to hardware telemetry we ran ourselves, **claimed** to upstream model metadata, and **verified** only to benchmark rows backed by pinned hashes and two reproductions ([GOVERNANCE.md](GOVERNANCE.md)). Anything we can't support is `null` — we never guess.
 
-More hard questions — SSD endurance, Q2 quality, why a data center company sponsors this — get straight answers in the [FAQ](docs/faq.md).
+More hard questions — SSD endurance, Q2 quality, external drives and eGPUs — get straight answers in the [FAQ](docs/faq.md).
 
 ## Compatibility matrix
 
@@ -206,10 +206,6 @@ The operating thesis is simple: **build the base, rent the spike.** Own the infr
 2. **Measurement before optimization.** Nothing is *verified* without pinned hashes and two reproductions.
 3. **Open standard before novel kernels.** The schemas and benchmark format are the durable contribution.
 4. **Not another runtime.** We generate exact launch commands for existing engines and measure the result.
-
-## Sponsorship
-
-Frontier Bridge is sponsored by [Digital Realty](https://www.digitalrealty.com/). Sponsorship does not change how technical decisions are made — the [results-integrity rule](GOVERNANCE.md#results-integrity) applies equally to sponsored and community contributions. See [NOTICE](NOTICE) and [GOVERNANCE.md](GOVERNANCE.md).
 
 ## Contributing
 
