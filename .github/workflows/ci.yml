@@ -24,6 +24,8 @@ jobs:
         run: pytest
       - name: Schema validation
         run: frontier validate .
+      - name: Runbook provenance gate
+        run: frontier runbook verify
       - name: Planner smoke test
         run: |
           frontier catalog hardware

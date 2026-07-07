@@ -15,6 +15,9 @@ venv/
 # Detected local profiles (commit reference profiles deliberately, not by accident)
 hardware_profiles/local/
 
+# Fleet registries with real reachability (RFC 0005) — commit only sanitized examples
+fleet/local/
+
 # Secrets — never commit
 .env
 .env.*

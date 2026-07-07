@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Brianletort/Frontier-Bridge/schemas/runbook.v1.json",
+  "title": "Frontier Bridge Runbook (runbook/v1)",
+  "description": "A distributable playbook for a hardware class. Prose is authored; every number in 'expected' is folded from committed benchresult/v1 files and carries a source result_id (RFC 0003).",
+  "type": "object",
+  "required": ["schema_version", "runbook_id", "title", "status", "hardware_class", "diagnosis", "model_menu", "provenance"],
+  "properties": {
+    "schema_version": { "const": "runbook/v1" },
+    "runbook_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "title": { "type": "string" },
+    "status": {
+      "enum": ["draft", "published"],
+      "description": "published requires runbook verify to pass in CI."
+    },
+    "hardware_class": {
+      "type": "object",
+      "required": ["name", "require"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+        "description": { "type": "string" },
+        "require": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nodePredicate" }
+        },
+        "known_profiles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Committed hwprofile ids confirmed to match. Informative, not authoritative — the matcher is."
+        }
+      }
+    },
+    "diagnosis": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["step"],
+        "properties": {
+          "step": { "type": "string" },
+          "command": { "type": ["string", "null"] },
+          "check": { "type": ["string", "null"], "description": "What to verify in the output before continuing." }
+        }
+      }
+    },
+    "model_menu": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["modelprofile", "verdict", "plan_ref", "role"],
+        "properties": {
+          "modelprofile": { "type": "string", "description": "model_id/quant, e.g. deepseek-v4-flash/q2_imatrix" },
+          "verdict": { "enum": ["recommended", "experimental", "not_recommended"] },
+          "plan_ref": { "type": "string", "description": "Repo-relative path to the committed plan/v1 file this verdict comes from. runbook verify re-checks agreement." },
+          "role": { "enum": ["daily_driver", "capability_ceiling", "not_viable"] },
+          "notes": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "expected": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["modelprofile", "workload"],
+        "properties": {
+          "modelprofile": { "type": "string" },
+          "workload": { "type": "string" },
+          "unmeasured": { "type": "boolean" },
+          "decode_tps": { "type": ["number", "null"] },
+          "ttft_ms": { "type": ["number", "null"] },
+          "p95_ms": { "type": ["number", "null"] },
+          "context": { "type": ["integer", "null"] },
+          "usability": {
+            "enum": ["unrated", "runs", "usable", "interactive", "agent_capable", "not_recommended", null]
+          },
+          "source": {
+            "type": ["string", "null"],
+            "description": "result_id of the committed benchresult/v1 file these numbers are folded from. Required unless unmeasured: true."
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "not": { "properties": { "unmeasured": { "const": true } }, "required": ["unmeasured"] }
+            },
+            "then": { "required": ["source"] }
+          },
+          {
+            "if": { "properties": { "unmeasured": { "const": true } }, "required": ["unmeasured"] },
+            "then": {
+              "properties": {
+                "decode_tps": { "const": null },
+                "ttft_ms": { "const": null },
+                "p95_ms": { "const": null }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "troubleshooting": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["symptom", "check"],
+        "properties": {
+          "symptom": { "type": "string" },
+          "check": { "type": "string" },
+          "fix": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["authored_by", "created"],
+      "properties": {
+        "authored_by": { "type": "string" },
+        "created": { "type": "string", "format": "date" },
+        "updated": { "type": ["string", "null"], "format": "date" }
+      }
+    }
+  },
+  "$defs": {
+    "nodePredicate": {
+      "type": "object",
+      "required": ["kind"],
+      "description": "A machine matches when every predicate is satisfied by at least one node in its hwprofile. Predicates test capacity and measured fields only; an unmeasured field fails a minimum-bound predicate.",
+      "properties": {
+        "kind": { "enum": ["compute", "memory", "storage", "network"] },
+        "class": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Acceptable node classes for this kind (e.g. [unified] or [device_local])."
+        },
+        "capacity_gb": { "$ref": "#/$defs/bounds" },
+        "measured": {
+          "type": "object",
+          "description": "Minimum bounds on measured fields, e.g. seq_read_gbps: { min: 3.0 }.",
+          "additionalProperties": { "$ref": "#/$defs/bounds" }
+        }
+      }
+    },
+    "bounds": {
+      "type": "object",
+      "properties": {
+        "min": { "type": ["number", "null"] },
+        "max": { "type": ["number", "null"] }
+      }
+    }
+  }
+}

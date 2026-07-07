@@ -1,4 +1,4 @@
-"""Schema loading and instance validation for the four v1 schemas.
+"""Schema loading and instance validation for the v1 schemas.
 
 Files are matched to schemas by their ``schema_version`` field. Files without
 one are skipped (they are not Frontier Bridge instances). Unknown schema
@@ -21,6 +21,8 @@ SCHEMA_FILES = {
     "modelprofile/v1": "modelprofile.v1.json",
     "plan/v1": "plan.v1.json",
     "benchresult/v1": "benchresult.v1.json",
+    "runbook/v1": "runbook.v1.json",
+    "fleet/v1": "fleet.v1.json",
 }
 
 _INSTANCE_SUFFIXES = {".yaml", ".yml", ".json"}

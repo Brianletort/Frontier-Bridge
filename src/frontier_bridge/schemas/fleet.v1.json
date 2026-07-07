@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Brianletort/Frontier-Bridge/schemas/fleet.v1.json",
+  "title": "Frontier Bridge Fleet Registry (fleet/v1)",
+  "description": "The machines an operator owns and how to reach them (RFC 0005). Files with real reachability belong in fleet/local/ (gitignored).",
+  "type": "object",
+  "required": ["schema_version", "fleet_id", "machines"],
+  "properties": {
+    "schema_version": { "const": "fleet/v1" },
+    "fleet_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "machines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+          "hwprofile": {
+            "type": ["string", "null"],
+            "description": "Committed hwprofile id; null until fleet detect produces one."
+          },
+          "reach": {
+            "type": ["object", "null"],
+            "description": "null means this machine (local) or manually operated.",
+            "required": ["ssh"],
+            "properties": {
+              "ssh": { "type": "string", "description": "Any ssh destination (user@host); the wire (Tailscale, LAN) is not the fleet layer's business." },
+              "workdir": { "type": ["string", "null"], "description": "Repo checkout on the remote; default ~/Frontier-Bridge." }
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": { "enum": ["bench", "serve", "build"] },
+            "description": "Informative labels, not scheduling semantics."
+          },
+          "notes": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

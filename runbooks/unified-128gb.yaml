@@ -1,0 +1,96 @@
+schema_version: runbook/v1
+runbook_id: unified-128gb
+title: Running frontier MoE models on 128 GB unified-memory machines
+status: draft
+hardware_class:
+  name: unified_128gb
+  description: >
+    Coherent unified-memory machines in the ~120-145 GB class: Apple M5 Max
+    128 GB and NVIDIA GB10 / DGX Spark. One memory pool serves CPU and GPU, so
+    the hierarchy has two levels (unified -> SSD) instead of three — a 284B
+    MoE fits resident; larger models depend on the SSD tier.
+  require:
+  - kind: memory
+    class: [unified]
+    capacity_gb: { min: 110, max: 145 }
+  - kind: compute
+    class: [gpu]
+  known_profiles:
+  - apple_m5_max_137gb_detected
+  - gb10_128gb
+diagnosis:
+- step: Install Frontier Bridge and profile the machine.
+  command: |
+    git clone https://github.com/Brianletort/Frontier-Bridge.git && cd Frontier-Bridge
+    pip install -e . && frontier detect -o hardware_profiles/local/my_machine.yaml
+  check: >
+    The profile must show a single memory node with class: unified. Two memory
+    nodes on a GB10-class machine means the GPU name missed the unified-memory
+    markers — file an issue.
+- step: Measure the SSD at expert-slice granularity (this number is your
+    streaming floor for models that do not fit resident).
+  command: frontier bench ssd-stream --output results/local/ssd_expert_read.jsonl
+  check: >
+    Record the worst figure as measured.expert_read_gbps on the profile's
+    storage node. Sequential bandwidth flatters the SSD; expert misses read
+    megabytes at random offsets.
+- step: Plan before you download — artifacts are 107-467 GB and the planner
+    tells you first whether your machine is worth the bandwidth.
+  command: frontier plan deepseek-v4-flash --quant q2_imatrix --hardware <your profile id> --workload coding_agent --ctx 32768
+model_menu:
+- modelprofile: deepseek-v4-flash/q2_imatrix
+  verdict: recommended
+  plan_ref: plans/m5max_dsv4flash_q2_chat_16k.yaml
+  role: daily_driver
+  notes: >
+    284B total / 13B active; the 107 GB Q2 artifact fits resident in unified
+    memory with headroom for 16K context. The only model in the catalog with
+    verified rows on this class today.
+- modelprofile: glm-5.2/q4_routed
+  verdict: experimental
+  plan_ref: plans/m5max_glm52_q4_coding_32k.yaml
+  role: capability_ceiling
+  notes: >
+    744B total / 40B active; the Q4 artifact exceeds unified capacity, so the
+    plan requires SSD expert streaming. Experimental means the plan is
+    topologically sound but usability is unproven on this class — no verified
+    rows yet.
+expected:
+- modelprofile: deepseek-v4-flash/q2_imatrix
+  workload: chat
+  decode_tps: 7.44
+  ttft_ms: 2297.16
+  p95_ms: 167.62
+  context: 8192
+  usability: interactive
+  source: m5max-dsv4q2-chat-run3
+- modelprofile: deepseek-v4-flash/q2_imatrix
+  workload: coding_agent
+  decode_tps: 7.41
+  ttft_ms: 2976.83
+  p95_ms: 167.64
+  context: 8192
+  usability: agent_capable
+  source: m5max-dsv4q2-coding-run3
+- modelprofile: glm-5.2/q4_routed
+  workload: coding_agent
+  unmeasured: true
+troubleshooting:
+- symptom: Planner reports far less memory than the machine was sold with.
+  check: >
+    Marketing GiB vs decimal GB — a "128 GB" M5 Max detects as 137.4 decimal
+    GB; a "128 GB" GB10 may detect lower after firmware carve-outs. The
+    detected number is the truth the planner uses.
+  fix: None needed; trust detect.
+- symptom: Two memory nodes appear on a GB10-class machine.
+  check: The GPU name did not match the unified-memory markers in detect.
+  fix: File an issue with your nvidia-smi output; the marker list is maintained in src/frontier_bridge/detect/linux_nvidia.py.
+- symptom: Decode stalls periodically on models that need the SSD tier.
+  check: >
+    Expert misses are hitting storage. Compare your measured expert_read_gbps
+    against the plan's streaming math; a slow or thermally-throttling SSD
+    moves the worst case dramatically.
+  fix: Re-run the ssd-stream bench after sustained load to catch throttling.
+provenance:
+  authored_by: Brian Letort
+  created: '2026-07-06'

@@ -1,0 +1,21 @@
+# Sanitized example fleet registry (RFC 0005). Copy to fleet/local/<name>.yaml
+# and fill in real reachability — fleet/local/ is gitignored on purpose.
+schema_version: fleet/v1
+fleet_id: example_home_lab
+machines:
+- name: mac-workstation
+  hwprofile: apple_m5_max_137gb_detected
+  reach: null            # null = this machine / operated by hand
+  roles: [bench, serve]
+- name: spark
+  hwprofile: gb10_128gb
+  reach:
+    ssh: you@your-spark  # any ssh destination; Tailscale MagicDNS names work unchanged
+    workdir: ~/Frontier-Bridge
+  roles: [bench, serve]
+- name: linux-laptop
+  hwprofile: null        # not yet detected — `frontier fleet detect linux-laptop` fills this
+  reach:
+    ssh: you@your-laptop
+    workdir: ~/Frontier-Bridge
+  roles: [bench]
