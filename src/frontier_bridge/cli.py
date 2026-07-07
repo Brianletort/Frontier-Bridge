@@ -28,6 +28,7 @@ from frontier_bridge.bench.experiments import (
 )
 from frontier_bridge.bench.streamspike import expert_read_bench, stream_read_gbps
 from frontier_bridge.detect import detect_hardware
+from frontier_bridge.doctor import nvidia_summary, run_checks, worst_status
 from frontier_bridge.fleet import (
     fleet_plan as run_fleet_plan,
     load_fleet,
@@ -117,6 +118,75 @@ def detect(
         typer.echo(f"Wrote {output}")
     else:
         typer.echo(text)
+
+
+@app.command()
+def doctor(
+    dest: Path = typer.Option(
+        Path("models"), "--dest", help="Planned destination for model artifacts (disk-space check)."
+    ),
+    run_match: bool = typer.Option(
+        True,
+        "--match/--no-match",
+        help="After the checks, profile this machine and match it against committed runbooks.",
+    ),
+) -> None:
+    """Is this machine ready? Environment checks with the exact fix for each
+    gap, then a profile + runbook match — all before anything downloads.
+
+    Doctor never installs anything; it tells you what is missing and how to
+    get it.
+    """
+    results = run_checks(models_dest=dest)
+    colors = {"ok": typer.colors.GREEN, "warn": typer.colors.YELLOW, "fail": typer.colors.RED}
+    for result in results:
+        typer.secho(f"{result.status:>4}  {result.name:<14} {result.detail}", fg=colors[result.status])
+        if result.fix and result.status != "ok":
+            typer.echo(f"      fix: {result.fix}")
+
+    gpu = nvidia_summary()
+    if gpu:
+        typer.echo(f"      gpu: {gpu}")
+
+    overall = worst_status(results)
+    if overall == "fail":
+        typer.secho(
+            "\nNot ready — fix the failures above before downloading anything.",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=1)
+
+    if run_match:
+        typer.echo("\nProfiling this machine (disk bench skipped)...")
+        try:
+            hwprofile = detect_hardware(run_disk_bench=False)
+        except NotImplementedError as exc:
+            typer.secho(
+                f"No detect path for this platform yet ({exc}). Use the manual "
+                "template in hardware_profiles/templates/.",
+                fg=typer.colors.YELLOW,
+            )
+            raise typer.Exit()
+        root = find_repo_root()
+        matched = False
+        for entry in load_runbooks(root):
+            if match_runbook(entry.data, hwprofile).matched:
+                matched = True
+                typer.secho(f"MATCH {entry.runbook_id}", fg=typer.colors.GREEN)
+                typer.echo(f"      {entry.data.get('title', '')}")
+                typer.echo(f"      runbooks/rendered/{entry.runbook_id}.md")
+        if not matched:
+            typer.echo(
+                "No committed runbook matches this machine yet — frontier plan "
+                "still works against your detected profile."
+            )
+    if overall == "warn":
+        typer.secho(
+            "\nReady with warnings — the fixes above unlock the full loop.",
+            fg=typer.colors.YELLOW,
+        )
+    else:
+        typer.secho("\nReady.", fg=typer.colors.GREEN)
 
 
 @app.command()
