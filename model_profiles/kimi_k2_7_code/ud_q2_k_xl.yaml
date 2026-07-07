@@ -2,8 +2,11 @@ schema_version: modelprofile/v1
 model_id: kimi-k2.7-code
 family: kimi
 license:
-  name: other
-  commercial_ok: unknown
+  name: modified-mit
+  commercial_ok: true
+  source: https://huggingface.co/moonshotai/Kimi-K2.7-Code
+  notes: 'Modified MIT per model card section 7: standard MIT terms plus prominent
+    attribution required above 100M MAU or $20M monthly revenue.'
 architecture:
   type: moe
   params_total_b: 1026.4
@@ -57,3 +60,7 @@ memory_model:
     routed_experts_gb:
       ud_q2_k_xl: 330.13
 known_failure_modes: []
+catalog:
+  status: provisional
+  size_class: frontier
+  since: '2026-07-06'

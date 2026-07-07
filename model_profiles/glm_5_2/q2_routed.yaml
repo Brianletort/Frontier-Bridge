@@ -60,3 +60,7 @@ memory_model:
       q2_routed: 222.87
 known_failure_modes:
 - q2_quality_degradation_unquantified
+catalog:
+  status: provisional
+  size_class: frontier
+  since: '2026-07-06'

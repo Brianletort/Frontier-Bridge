@@ -50,9 +50,10 @@ memory_model:
     routed_experts_gb:
       q2_imatrix: 100.28
 known_failure_modes:
-  - hybrid_csa_hca_requires_recent_runtime_support
-  - q2_quality_degradation_unquantified
-  # Measured on M5 Max 137GB / llama.cpp b9870 Metal: full -ngl 999 residency
-  # OOMs the Metal working set (kIOGPUCommandBufferCallbackErrorOutOfMemory)
-  # even though 107GB < 137GB; --n-cpu-moe 30 runs stably, 14/24 do not.
-  - metal_working_set_oom_requires_larger_cpu_moe_offload_than_headroom_math
+- hybrid_csa_hca_requires_recent_runtime_support
+- q2_quality_degradation_unquantified
+- metal_working_set_oom_requires_larger_cpu_moe_offload_than_headroom_math
+catalog:
+  status: provisional
+  size_class: mid
+  since: '2026-07-06'

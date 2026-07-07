@@ -2,8 +2,11 @@ schema_version: modelprofile/v1
 model_id: kimi-k2.6
 family: kimi
 license:
-  name: other
-  commercial_ok: unknown
+  name: modified-mit
+  commercial_ok: true
+  source: https://github.com/MoonshotAI/Kimi-K2/blob/main/LICENSE
+  notes: 'Modified MIT: standard MIT terms plus prominent ''Kimi K2'' attribution
+    required above 100M MAU or $20M monthly revenue.'
 architecture:
   type: moe
   params_total_b: 1026.4
@@ -69,3 +72,10 @@ memory_model:
     routed_experts_gb:
       ud_q4_k_xl: 570.76
 known_failure_modes: []
+catalog:
+  status: retired
+  size_class: frontier
+  since: '2026-07-06'
+  retired_reason: Superseded within family by kimi-k2.7-code (upstream-designated
+    coding successor); frontier-class cap admits one Kimi entry. Presumptive pending
+    the RFC 0004 eval-evidence pass.

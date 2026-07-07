@@ -53,3 +53,7 @@ memory_model:
       q4_imatrix: 167.45
 known_failure_modes:
 - hybrid_csa_hca_requires_recent_runtime_support
+catalog:
+  status: provisional
+  size_class: mid
+  since: '2026-07-06'

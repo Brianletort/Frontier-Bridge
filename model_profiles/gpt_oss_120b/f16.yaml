@@ -3,7 +3,9 @@ model_id: gpt-oss-120b
 family: gpt-oss
 license:
   name: apache-2.0
-  commercial_ok: unknown
+  commercial_ok: true
+  source: https://huggingface.co/openai/gpt-oss-120b
+  notes: Apache 2.0 with a supplemental (non-binding on the license grant) usage policy.
 architecture:
   type: moe
   params_total_b: 116.8
@@ -40,3 +42,7 @@ memory_model:
     routed_experts_gb:
       f16: 61.07
 known_failure_modes: []
+catalog:
+  status: provisional
+  size_class: compact
+  since: '2026-07-06'

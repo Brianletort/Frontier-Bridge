@@ -3,7 +3,9 @@ model_id: qwen3-coder-480b
 family: qwen
 license:
   name: apache-2.0
-  commercial_ok: unknown
+  commercial_ok: true
+  source: https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct/blob/main/LICENSE
+  notes: Apache 2.0; commercial use, modification, distribution permitted.
 architecture:
   type: moe
   params_total_b: 480.2
@@ -53,3 +55,7 @@ memory_model:
     routed_experts_gb:
       ud_q4_k_xl: 268.02
 known_failure_modes: []
+catalog:
+  status: provisional
+  size_class: frontier
+  since: '2026-07-06'

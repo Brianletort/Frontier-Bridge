@@ -2,8 +2,11 @@ schema_version: modelprofile/v1
 model_id: minimax-m3
 family: minimax
 license:
-  name: other
-  commercial_ok: unknown
+  name: minimax-community
+  commercial_ok: false
+  source: https://huggingface.co/MiniMaxAI/MiniMax-M3
+  notes: 'MiniMax Community License: personal/research use unrestricted; commercial
+    use requires prior written authorization from MiniMax.'
 architecture:
   type: moe
   params_total_b: 426.0
@@ -55,3 +58,10 @@ memory_model:
     routed_experts_gb:
       ud_q4_k_xl: 251.16
 known_failure_modes: []
+catalog:
+  status: retired
+  size_class: frontier
+  since: '2026-07-06'
+  retired_reason: "MiniMax Community License requires prior written authorization\
+    \ for commercial use \u2014 fails RFC 0004 criterion 2 (enterprise-usable license).\
+    \ Profile kept per the no-deletion rule."

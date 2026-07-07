@@ -13,7 +13,12 @@
       "type": "object",
       "properties": {
         "name": { "type": ["string", "null"] },
-        "commercial_ok": { "enum": [true, false, "unknown"] }
+        "commercial_ok": { "enum": [true, false, "unknown"] },
+        "source": {
+          "type": ["string", "null"],
+          "description": "URL backing the license claim. A commercial_ok other than 'unknown' should carry one."
+        },
+        "notes": { "type": ["string", "null"] }
       }
     },
     "architecture": {
@@ -97,6 +102,29 @@
     "known_failure_modes": {
       "type": "array",
       "items": { "type": "string" }
+    },
+    "catalog": {
+      "type": "object",
+      "description": "Catalog admission status per RFC 0004. Optional: profiles without it are uncatalogued, not invalid.",
+      "required": ["status", "size_class"],
+      "properties": {
+        "status": { "enum": ["provisional", "admitted", "retired"] },
+        "size_class": { "enum": ["compact", "mid", "frontier"] },
+        "since": { "type": ["string", "null"], "format": "date" },
+        "evidence": {
+          "type": "array",
+          "description": "Claimed capability evidence with sources. Required content for admitted status (enforced by policy/review, not schema).",
+          "items": {
+            "type": "object",
+            "required": ["claim", "source"],
+            "properties": {
+              "claim": { "type": "string" },
+              "source": { "type": "string" }
+            }
+          }
+        },
+        "retired_reason": { "type": ["string", "null"] }
+      }
     }
   }
 }
