@@ -1,0 +1,98 @@
+schema_version: runbook/v1
+runbook_id: gpu-laptop-128gb
+title: Running frontier MoE models on 16 GB-VRAM / 128 GB-DDR laptops
+status: draft
+hardware_class:
+  name: gpu_laptop_128gb
+  description: >
+    Linux laptops and small-form workstations with a discrete NVIDIA GPU in
+    the 12-24 GB VRAM class and 96 GB or more of system RAM (RTX 4090/5000
+    Ada mobile class). The hierarchy has three levels: VRAM holds attention,
+    KV, and hot experts; system RAM holds the routed expert pool
+    (--n-cpu-moe); NVMe is the streaming backstop. Big-DDR laptops are a
+    sleeper class — the expert pool lives in RAM, not VRAM, so 16 GB of VRAM
+    is not the ceiling it appears to be.
+  require:
+  - kind: memory
+    class: [device_local]
+    capacity_gb: { min: 12, max: 24 }
+  - kind: memory
+    class: [system]
+    capacity_gb: { min: 96 }
+  - kind: compute
+    class: [gpu]
+  known_profiles:
+  - rtx4090_laptop_16gb_128ram
+diagnosis:
+- step: Bootstrap and check readiness (doctor lists every gap with its fix).
+  command: |
+    git clone https://github.com/Brianletort/Frontier-Bridge.git
+    cd Frontier-Bridge && ./scripts/bootstrap.sh
+  check: >
+    doctor should show nvidia-smi present. If llama-server is missing, the
+    next step builds it.
+- step: Build CUDA llama.cpp with a recorded commit (the runtime pin verified
+    rows require).
+  command: ./scripts/build_llama_cpp_cuda.sh
+  check: >
+    Note the printed runtime commit — every bench run takes it via
+    --runtime-commit. Details in docs/linux_runtime.md.
+- step: Profile the machine from the filesystem the models will live on.
+  command: frontier detect -o hardware_profiles/local/my_laptop.yaml
+  check: >
+    Expect a discrete topology: a device_local vram node attached to the GPU,
+    a system memory node, and an nvme node. Laptop SSDs throttle under
+    sustained load — re-run the disk bench after a long read to catch it.
+- step: Measure the SSD at expert-slice granularity (the streaming floor for
+    models larger than RAM).
+  command: frontier bench ssd-stream --output results/local/ssd_expert_read.jsonl
+- step: Find the offload stability boundary before benching (which experts
+    fit where is this class's central tuning knob).
+  command: frontier bench sweep-offload --model ~/models/<gguf> --values 8,16,24,32 --output results/local/offload_sweep.jsonl
+model_menu:
+- modelprofile: deepseek-v4-flash/q2_imatrix
+  verdict: recommended
+  plan_ref: plans/laptop4090_dsv4flash_q2_coding_32k.yaml
+  role: daily_driver
+  notes: >
+    284B total / 13B active. Dense core and KV fit VRAM with headroom; the
+    routed expert pool (~90 GB budget) lives in system RAM via --n-cpu-moe.
+    Memory fit is planner-verified; usability numbers are pending the first
+    bench runs on real hardware.
+- modelprofile: glm-5.2/q2_routed
+  verdict: experimental
+  plan_ref: plans/laptop4090_glm52_q2_coding_32k.yaml
+  role: capability_ceiling
+  notes: >
+    744B total / 40B active; the 238.6 GB artifact exceeds RAM, so the NVMe
+    tier streams expert misses. Experimental means topologically sound with
+    unmeasured streaming performance — the plan discloses the risks, and the
+    ssd-stream measurement is what turns them into numbers.
+expected:
+- modelprofile: deepseek-v4-flash/q2_imatrix
+  workload: coding_agent
+  unmeasured: true
+- modelprofile: glm-5.2/q2_routed
+  workload: coding_agent
+  unmeasured: true
+troubleshooting:
+- symptom: llama-server built but CUDA is not used at runtime.
+  check: >
+    The build found nvcc but the driver/toolkit versions may mismatch —
+    check the llama-server startup log for the CUDA device line.
+  fix: Rebuild after aligning driver and toolkit; scripts/build_llama_cpp_cuda.sh prints both.
+- symptom: Decode stalls or the machine swaps under load.
+  check: >
+    The --n-cpu-moe value is past the RAM working set, or another process
+    holds memory. Re-run the sweep-offload experiment and pick the last
+    stable point.
+  fix: Lower the offload value; leave ~10% of RAM free for the OS.
+- symptom: SSD numbers look great cold and terrible after ten minutes.
+  check: Laptop NVMe thermal throttling — common in this class.
+  fix: >
+    Re-run frontier bench ssd-stream after sustained load and record the
+    worst figure as expert_read_gbps; the planner should see the throttled
+    number, not the brochure number.
+provenance:
+  authored_by: Brian Letort
+  created: '2026-07-07'

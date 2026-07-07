@@ -1,0 +1,89 @@
+# Reference profile: Linux laptop with a mobile RTX 4090 (16 GB VRAM),
+# 128 GB system RAM, NVMe. The "modest VRAM, big DDR" class — attention/KV
+# and hot experts in VRAM, the routed expert pool in system RAM
+# (--n-cpu-moe), NVMe as the streaming backstop.
+# provenance.method is manual: capacities come from the machine's
+# configuration; everything measurable is null until `frontier detect` runs
+# on the real hardware and replaces this file.
+schema_version: hwprofile/v1
+profile_id: rtx4090_laptop_16gb_128ram
+provenance:
+  method: manual
+  detected_at: null
+  tool_version: null
+  os:
+    family: linux
+    version: null
+    kernel: null
+
+nodes:
+  - id: cpu0
+    kind: compute
+    class: cpu
+    vendor: intel
+    arch: x86_64
+    model: null
+    cores: null
+    numa_nodes: 1
+  - id: gpu0
+    kind: compute
+    class: gpu
+    vendor: nvidia
+    arch: ada
+    model: RTX 4090 Laptop GPU
+    api:
+      cuda: unverified
+      sm: null
+    rated:
+      fp16_tflops: null
+  - id: vram0
+    kind: memory
+    class: device_local
+    capacity_gb: 16
+    bandwidth_gbps:
+      rated: null
+      measured: null
+    attached_to: gpu0
+  - id: sysram0
+    kind: memory
+    class: system
+    capacity_gb: 128
+    bandwidth_gbps:
+      rated: null
+      measured: null
+    pinnable: true
+  - id: nvme0
+    kind: storage
+    class: nvme
+    capacity_gb: null
+    pcie:
+      gen: null
+      lanes: null
+    measured:
+      seq_read_gbps: null
+      rand_read_4k_iops: null
+      qd_used: null
+      bench_tool: null
+
+links:
+  - from: sysram0
+    to: vram0
+    via: pcie
+    gen: null
+    lanes: null
+    measured:
+      h2d_gbps: null
+      d2h_gbps: null
+      pinned: unknown
+  - from: nvme0
+    to: sysram0
+    via: pcie
+    measured:
+      seq_read_gbps: null
+
+envelope:
+  power_w:
+    rated: null
+    measured_idle: null
+    measured_load: null
+  thermal_headroom: unknown

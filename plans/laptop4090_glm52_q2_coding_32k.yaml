@@ -1,0 +1,74 @@
+schema_version: plan/v1
+plan_id: rtx4090-laptop-16gb-128ram-glm-5.2-q2-routed-coding-agent-32768
+inputs:
+  hwprofile: rtx4090_laptop_16gb_128ram
+  modelprofile: glm-5.2/q2_routed
+  workload: coding_agent
+  context_budget: 32768
+verdict: experimental
+placement:
+  resident:
+    dense_core: vram0
+    router: vram0
+    shared_experts: vram0
+  tiered:
+    routed_experts:
+      l0:
+        node: vram0
+        budget_gb: 0
+        policy: layer_aware_lru
+        expert_layer_capacity: 0
+      l1:
+        node: sysram0
+        budget_gb: 89.6
+        policy: lru
+        pinned: true
+        expert_layer_capacity: 8145
+      l2:
+        node: nvme0
+        mode: stream_on_miss
+    kv_cache:
+      hot:
+        node: vram0
+        window_tokens: 32768
+      warm:
+        node: sysram0
+      cold:
+        node: nvme0
+        persist: true
+phases:
+  prefill:
+    batch: auto
+    notes: throughput-bound; expert misses tolerable
+  decode:
+    target_p95_ms: null
+    prefetch: static_hotlist
+    notes: miss-sensitive; protect the active path
+runtime:
+  engine: llama_cpp
+  build: null
+  launch: 'llama-server -m <GGUF_PATH> -c 32768 --host 127.0.0.1 --port 8080 -ngl
+    999 --n-cpu-moe 79 --jinja  # llama.cpp for glm-5.2 q2_routed; n-cpu-moe from
+    plan L0 budget and measured expert sizes; mmap default-on is the L2 stream-on-miss
+    path'
+  tiering_flags:
+    n_cpu_moe: 79
+    mlock: false
+    mmap_stream_l2: true
+expected:
+  decode_tps:
+    p50: null
+    source: null
+  usability_class: unrated
+  streaming:
+    worst_case_miss_gb_per_token: 6.95
+    moe_layers: 79
+    storage_seq_read_gbps: null
+    storage_expert_read_gbps: null
+    worst_case_miss_seconds_per_token: null
+    source: computed_from_measured_gguf_headers_and_links
+risks:
+- decode_latency_spikes_on_expert_miss
+- ssd_bandwidth_unmeasured_streaming_performance_unknown
+- kv_footprint_unmeasured_context_budget_not_validated
+- agent_workloads_are_decode_latency_sensitive
