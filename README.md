@@ -29,14 +29,16 @@ Can a single high-end machine run frontier-scale open models — GLM-5.2 (744B t
 
 ```bash
 git clone https://github.com/Brianletort/Frontier-Bridge.git
-cd Frontier-Bridge
-pip install -e ".[dev]"
+cd Frontier-Bridge && ./scripts/bootstrap.sh   # venv, install, then `frontier doctor`:
+                                               # what this machine is, what's missing
+                                               # (with the fix), which runbook applies
+source .venv/bin/activate
 
 # profile this machine (hardware_profiles/local/ is gitignored)
 frontier detect -o hardware_profiles/local/my_machine.yaml
 PROFILE=$(awk '/^profile_id:/{print $2}' hardware_profiles/local/my_machine.yaml)
 
-frontier catalog models                # what's pinned: GLM-5.2, DeepSeek V4 Flash
+frontier catalog models                # the curated catalog: GLM-5.2, DeepSeek V4 Flash, ...
 frontier plan deepseek-v4-flash --quant q2_imatrix \
     --hardware "$PROFILE" --workload coding_agent --ctx 32768
 ```
@@ -61,7 +63,7 @@ What makes these different from the internet's pile of "run model X on hardware 
 
 The model menu draws from a deliberately small catalog — top open-weight models per size class, enterprise-usable licenses required, admission criteria written down in [RFC 0004](rfcs/0004-catalog-admission.md) so curation is a rule, not a popularity contest.
 
-Runbooks live in [runbooks/](runbooks/) (YAML source + rendered markdown). One ships today — [unified-128gb](runbooks/rendered/unified-128gb.md), backed by the first verified rows — with the discrete-GPU laptop and RTX 6000 classes next as their hardware gets benchmarked. Contributing a runbook for a class we don't cover is one of the most valuable PRs this project accepts.
+Runbooks live in [runbooks/](runbooks/) (YAML source + rendered markdown). Two ship today — [unified-128gb](runbooks/rendered/unified-128gb.md), backed by the first verified rows, and [gpu-laptop-128gb](runbooks/rendered/gpu-laptop-128gb.md) (draft: planner-verified menu, performance honestly `unmeasured` until its hardware is benched) — with the RTX 6000 class next. Contributing a runbook for a class we don't cover is one of the most valuable PRs this project accepts.
 
 ## Demo
 
@@ -188,6 +190,7 @@ The measurement pipeline is built and tested; the first verified rows are the cu
 | `runbook/v1` + `frontier runbook match/render/verify` ([RFC 0003](rfcs/0003-runbooks.md)) | Draft RFC; CLI live; first runbook shipped; CI enforces the fold rule |
 | Catalog admission policy ([RFC 0004](rfcs/0004-catalog-admission.md)) | Draft RFC; license claims sourced; catalog blocks applied |
 | `fleet/v1` + `frontier fleet plan/detect/bench` ([RFC 0005](rfcs/0005-fleet.md)) | Draft RFC; CLI live; remote wrappers pending first real fleet run |
+| `frontier doctor` | Readiness diagnostic: every gap with its exact fix, then detect + runbook match — run it before downloading anything |
 | `frontier detect` | Live on macOS/Apple Silicon; Linux CPU/RAM/disk path verified in containers; NVIDIA GPU + WSL2 + GB10 paths fixture-tested, pending real hardware ([verification checklist](docs/linux_verification.md)) |
 | Pinned model artifacts | Five catalogued families (GLM-5.2, DeepSeek V4 Flash, Kimi K2.7-Code, Qwen3-Coder-480B, gpt-oss-120b) + two retired-but-kept (Kimi K2.6 superseded in-family; MiniMax M3 license fails the enterprise-usable criterion) — sha256 per shard, sourced license claims |
 | `frontier catalog add` / `inspect-gguf` | Ingests HF GGUF repos into measured model profiles (header-measured memory model, LFS sha256 pins) — no full download |

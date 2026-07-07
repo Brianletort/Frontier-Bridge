@@ -40,7 +40,9 @@ _RUNTIME_BINARIES: dict[str, str] = {
 
 _INSTALL_HINTS: dict[str, str] = {
     "llama_cpp": (
-        "brew install llama.cpp  (macOS/Linuxbrew)\n"
+        "macOS: brew install llama.cpp\n"
+        "  Linux + NVIDIA: ./scripts/build_llama_cpp_cuda.sh  (CUDA build; records the\n"
+        "  runtime commit for benchresult pins — see docs/linux_runtime.md)\n"
         "  or download a release: https://github.com/ggml-org/llama.cpp/releases"
     ),
     "ds4": "see https://github.com/mitkox/ds4-zgx-gb10",

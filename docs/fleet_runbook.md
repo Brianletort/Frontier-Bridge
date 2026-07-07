@@ -10,6 +10,38 @@ RFC 0005) and run `frontier fleet detect <machine>` — it executes the same
 steps below remotely and pulls the profile back into
 `hardware_profiles/local/` for review.
 
+## 0. Setting up a new operator seat
+
+Any machine in the fleet can be the seat you drive the others from. Fresh
+bring-up (Ubuntu or macOS):
+
+```bash
+git clone https://github.com/Brianletort/Frontier-Bridge.git
+cd Frontier-Bridge && ./scripts/bootstrap.sh   # venv + install + doctor
+source .venv/bin/activate
+```
+
+`frontier doctor` ends the first minute knowing what the machine is, what is
+missing (with the exact fix), and which runbook applies.
+
+Then give the seat its fleet registry — `fleet/local/` is gitignored because
+it carries reachability details:
+
+```bash
+mkdir -p fleet/local && cp fleet/example.yaml fleet/local/home_lab.yaml
+# edit: real machine names, ssh destinations (Tailscale MagicDNS names work
+# unchanged), and committed hwprofile ids where they exist
+
+ssh-copy-id <user>@<machine>      # once per remote machine
+frontier fleet plan deepseek-v4-flash --workload coding_agent --ctx 32768
+frontier fleet detect <machine>   # remote detect, profile pulled back for review
+```
+
+Example: from a Lenovo laptop that shares a network (or tailnet) with a DGX
+Spark, `frontier fleet detect dgx-spark` runs the GB10 bring-up in §2 without
+leaving the laptop. Results land in `hardware_profiles/local/` and
+`results/local/` on the seat — review, then commit from wherever you edit.
+
 ## 1. M5 Max 128 GB (macOS) — done
 
 Already committed as
