@@ -160,6 +160,13 @@ flowchart LR
 
 No pins, no verified. One reproduction, no verified. The tool enforces the pins and the reproduction count — `frontier bench` emits `status: claimed` otherwise — while fresh-runtime-start discipline for reproductions is enforced in review per the [benchmark playbook](benchmark_playbook.md). The [compatibility matrix](compatibility_matrix.md) is a fold over these files, not a database anyone can edit. `ssd_total_read_gb` is tracked per run so the "won't streaming wear out my SSD?" question gets answered with data ([FAQ](faq.md)).
 
+## From matrix rows to runbooks and fleets
+
+Two layers sit on top of the pipeline above, both added by RFC rather than new measurement semantics:
+
+- **Runbooks** ([RFC 0003](../rfcs/0003-runbooks.md)) are the distributable product: one playbook per *hardware class* (a matcher over `hwprofile/v1` node predicates), with a curated model menu whose verdicts come from committed plans and an expectations table folded from committed benchresults. `frontier runbook verify` is the CI gate that keeps runbook numbers mechanically honest; `frontier runbook match` is how an owner finds theirs.
+- **The fleet layer** ([RFC 0005](../rfcs/0005-fleet.md)) registers the machines one operator owns and answers placement one level up: `frontier fleet plan` folds the pure planner over every registered profile. A second machine reachable over a measured link is a *generalized island* (RFC 0002) — memory `class: remote` behind a `thunderbolt` or `ethernet` link — which is how a dual-node pipeline-split topology is described without any new schema concepts. Whether it is ever *recommended* is decided by the [dual-node spike protocol](spike_dual_node_thunderbolt.md), not by the schema.
+
 ## Where this goes
 
 The resource-graph design is why the [enterprise bridge](enterprise_bridge.md) is a schema change, not a rewrite: a multi-GPU rack node is more nodes and links; a multi-site deployment is a network link with measured bandwidth. The planner does not care whether `l1` is pinned workstation RAM or a CXL pool — it cares about capacity and measured bandwidth. Next steps, gates, and sequencing live in the [roadmap](roadmap.md).

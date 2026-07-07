@@ -4,6 +4,12 @@ One page per machine. Each run replaces the manual placeholder profile with a
 `provenance.method: detect` profile. Commit the output after reviewing it for
 anything you consider sensitive.
 
+Machines reachable over SSH can be driven from one seat instead: register
+them in a `fleet/v1` file (see [fleet/example.yaml](../fleet/example.yaml),
+RFC 0005) and run `frontier fleet detect <machine>` — it executes the same
+steps below remotely and pulls the profile back into
+`hardware_profiles/local/` for review.
+
 ## 1. M5 Max 128 GB (macOS) — done
 
 Already committed as
@@ -83,6 +89,25 @@ What to expect:
 - Model storage: keep GGUFs on the ext4 filesystem (e.g. `~/models`), not
   `/mnt/c`. Budget: GLM-5.2 Q2 (~250 GB class) + DeepSeek V4 Flash fit in 2 TB
   with working room.
+
+## 4. Lenovo pair (Ubuntu, i9 / 128 GB RAM / 16 GB VRAM: RTX 5000 Ada and RTX 4090)
+
+Both boxes run Ubuntu natively — no WSL2 caveats. Same steps as the GB10
+(clone, venv, `fio`, detect), expecting the **discrete** topology: separate
+`vram` memory node, PCIe link, GDS link recorded with its availability.
+
+- These are the first real runs of the discrete-NVIDIA detect path
+  (fixture-tested until now). File whatever breaks.
+- Detect both machines even though they differ only by GPU — the RTX 5000 Ada
+  vs RTX 4090 pair is a controlled comparison the matrix can use.
+- With the 5090 eGPU attached: detect currently classifies all GPUs as
+  internal PCIe. The Thunderbolt-attached GPU needs per-GPU link
+  classification (sysfs TB topology or a measured per-GPU bandwidth probe)
+  emitting the `thunderbolt` link `via` from RFC 0002 — until that lands,
+  hand-edit the detected profile's link and mark the field's provenance
+  accordingly.
+- The dual-node bridge experiment for this pair has its own protocol:
+  [spike_dual_node_thunderbolt.md](spike_dual_node_thunderbolt.md).
 
 ## After each run
 

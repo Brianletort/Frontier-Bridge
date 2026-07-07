@@ -3,11 +3,21 @@
 **Objective:** prove the hypothesis — near-frontier MoE models (GLM-5.2 at
 744B total / 40B active, DeepSeek V4 Flash at 284B / 13B) are practically
 runnable on the 96 GB VRAM / 128 GB unified / fast-DDR+NVMe hardware class —
-with hash-pinned, twice-reproduced numbers, then launch.
+with hash-pinned, twice-reproduced numbers, then launch. The deliverable is
+the **runbook** ([RFC 0003](../rfcs/0003-runbooks.md)): one distributable
+playbook per hardware class, numbers folded from verified rows.
 
 Launch gates (G0/G1) are defined in [launch_checklist.md](launch_checklist.md).
 Per-machine bring-up steps live in [fleet_runbook.md](fleet_runbook.md); the
 exact benchmark loop lives in [benchmark_playbook.md](benchmark_playbook.md).
+
+**Resequenced 2026-07-06** to match the fleet actually on hand: GB10 is
+reachable now (Tailscale) and promoted to the next machine; two Ubuntu
+laptops (i9 / 128 GB RAM / 16 GB VRAM — RTX 5000 Ada and RTX 4090) plus a
+5090 eGPU enclosure join as the discrete-NVIDIA proving ground and the
+dual-node spike pair; the RTX 6000 (Windows → WSL2) phase is deferred, not
+changed — its runbook becomes the fourth. Paper tracks (RFCs 0003–0005,
+runbook CLI, fleet CLI, catalog audit) landed ahead of the hardware work.
 
 ## Phase 0 — M5 Max 128 GB (now)
 
@@ -37,7 +47,37 @@ can produce the first verified matrix row with no other hardware.
    "four pins + two reproductions" rule real before new hardware enters
    the picture.
 
-## Phase 1 — RTX 6000 96 GB (at home, priority 1)
+## Phase 1 — GB10 128 GB over Tailscale (now, priority 1)
+
+Promoted from Phase 2: the machine is reachable today and its class shares
+the `unified-128gb` runbook with the M5 Max.
+
+1. `frontier fleet detect dgx-spark` (or the manual steps in
+   [fleet_runbook.md](fleet_runbook.md) §2); verify the single `unified`
+   memory node; commit the detected profile, delete the manual placeholder.
+2. DeepSeek V4 Flash Q2 resident: bench ×3 (chat + coding_agent), fold the
+   matrix, add the class's second `known_profile` to the runbook.
+3. GLM-5.2 Q2 plan (239 GB vs 128 GB unified): commit whatever verdict the
+   planner returns — a refusal is runbook material, not a failure.
+
+## Phase 1b — Lenovo pair (Ubuntu, discrete NVIDIA)
+
+First real run of the `linux_nvidia.py` discrete-GPU detect path, and the
+`gpu-laptop-128gb` runbook's evidence base.
+
+1. Detect both boxes (RTX 5000 Ada vs RTX 4090, otherwise identical — a
+   natural controlled comparison).
+2. Tiered rows on the 4090 box: DSV4 Q2 (`--n-cpu-moe`, experts in RAM) and
+   GLM-5.2 Q2 (NVMe tier engaged).
+3. 5090 eGPU attached: extend detect with Thunderbolt GPU link
+   classification, commit the island-topology profile, bench the resident
+   island (the empirical test of RFC 0002's island claim).
+4. Dual-node Thunderbolt bridge spike per
+   [spike_dual_node_thunderbolt.md](spike_dual_node_thunderbolt.md) —
+   adopt as a supported topology or publish the refusal, by the written
+   decision rule.
+
+## Phase 2 (deferred, unchanged) — RTX 6000 96 GB via WSL2
 
 The launch-demo machine and the direct test of the 96 GB VRAM gap.
 
@@ -63,19 +103,7 @@ The launch-demo machine and the direct test of the 96 GB VRAM gap.
 (below a `usable` rating), that is a finding, not a failure — publish it
 honestly; it feeds the Phase 4 spike's motivation directly.
 
-## Phase 2 — GB10 128 GB (at home, priority 2, timeboxed)
-
-GB10 is never the critical path. Timebox it to one session.
-
-1. `frontier detect` per the runbook; verify the unified-memory topology
-   (single `unified` node — two memory nodes means the GPU-name marker did
-   not match; file it).
-2. llama.cpp CUDA build for SM121; pin the commit.
-3. One row: DeepSeek V4 Flash Q2 resident, coding_agent 32K. GLM-5.2 Q2
-   unified+SSD if time allows.
-4. Capture quirks as issues; do not chase them.
-
-## Phase 3 — Matrix, gates, and launch
+## Phase 3 — Matrix, runbooks, gates, and launch
 
 1. Fold all rows into `docs/compatibility_matrix.md`
    (`frontier results matrix`); usability labels never better than
@@ -85,9 +113,13 @@ GB10 is never the critical path. Timebox it to one session.
    checkpoint #1, name clearance with a backup name, and — only if a sponsor
    comes aboard — sponsorship confirmation in writing before any attribution.
    G0 is the plan's only external dependency and its biggest schedule risk.
-3. Community scaffolding: benchmark-submission PR template,
-   "good first profile" issues, GitHub Discussions.
-4. Launch sequence as written in
+3. Runbooks per benchmarked class (`frontier runbook verify` green in CI):
+   `unified-128gb` updated with GB10 rows, `gpu-laptop-128gb` authored from
+   the Lenovo rows, `rtx6000-96gb` after Phase 2.
+4. Community scaffolding: benchmark-submission PR template,
+   "good first profile" issues, runbook contribution guide, GitHub
+   Discussions.
+5. Launch sequence as written in
    [launch_checklist.md](launch_checklist.md): repo public → LocalLLaMA
    tester post → LinkedIn → Hacker News only after a demo
    video and reproducible numbers exist.
@@ -117,15 +149,15 @@ VRAM budget. Open policies only; router-aware prefetch stays held per
 
 | When | What | Output |
 |---|---|---|
-| Now | M5 Max × DeepSeek V4 Flash Q2 verified row; start downloads | First real matrix row; pipeline proven |
-| Home, day 1 | RTX 6000 WSL2 bring-up + detect | 2nd reference profile; Linux detect validated |
-| Home, day 1–2 | GLM-5.2 Q2 tiered run + bench ×3 | Launch-demo row; hypothesis data |
-| Home, day 2 | GB10 detect + one row (timeboxed) | 3rd profile; G1 detect gate closed |
-| Parallel | G0 legal/brand/IP/name/sponsorship | Clearance to promote |
+| Done | M5 Max × DeepSeek V4 Flash Q2 verified rows | First real matrix rows; pipeline proven |
+| Done (paper) | RFCs 0003–0005; runbook + fleet CLI; catalog audit with sourced licenses; first runbook | The product standard, ahead of the hardware data |
+| Now | GB10 detect over Tailscale + DSV4 rows + GLM verdict | 2nd benchmarked machine; unified-128gb runbook strengthened |
+| Next | Lenovo pair detect; 4090-box tiered rows; eGPU island | Discrete detect validated; gpu-laptop runbook material |
+| Next | Dual-node Thunderbolt spike (5 days, written decision rule) | Supported topology or published refusal |
+| Deferred | RTX 6000 WSL2 bring-up + GLM-5.2 launch-demo row | The 96 GB VRAM hypothesis test; 4th runbook |
+| Parallel | G0 legal/brand/IP/name/sponsorship | Clearance to promote — now covers the runbook brand too |
 | After G1 | Launch sequence | Public repo + community pipeline |
 | Post-launch | Expert-streaming spike | Adopt/reject explicit expert cache |
 
-Net: two solid days of hands-on-hardware work stand between the current
-state and G1's technical gates. The schedule risk is entirely G0 — the
-legal and sponsorship threads should move this week so the paperwork lands
-when the numbers do.
+The schedule risk is entirely G0 — the legal and sponsorship threads should
+move this week so the paperwork lands when the numbers do.

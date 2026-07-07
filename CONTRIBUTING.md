@@ -2,10 +2,11 @@
 
 Thanks for helping build the bridge. The most valuable early contributions, in order:
 
-1. **Hardware profiles** from machines we don't have (RTX 6000/PRO 6000, GB10, Mac Studio, RTX 5090, Strix Halo).
+1. **Hardware profiles** from machines we don't have (RTX 6000/PRO 6000, Mac Studio, RTX 5090, Strix Halo).
 2. **Benchmark results** that reproduce.
-3. **Recipes** — exact, working launch commands for a model/quant/runtime/hardware combination.
-4. Code and docs.
+3. **Runbooks** for hardware classes we don't cover ([RFC 0003](rfcs/0003-runbooks.md)) — schema-validated, CI-checked playbooks whose numbers must trace to committed results.
+4. **Recipes** — exact, working launch commands for a model/quant/runtime/hardware combination.
+5. Code and docs.
 
 ## Developer setup
 
@@ -37,9 +38,18 @@ Rules:
 
 ## Submitting benchmark results
 
-Benchmark submission lands with the Phase 4 harness. Until then, results are collected as issues. When the harness ships, submissions will be one `benchresult/v1` JSON per run, and the leaderboard is a fold over those files.
+The harness is shipped: run the loop in the [benchmark playbook](docs/benchmark_playbook.md) and submit one `benchresult/v1` JSON per run to `results/community/` via PR (there is a [PR template](.github/PULL_REQUEST_TEMPLATE/benchmark_submission.md)). The compatibility matrix is a fold over those files.
 
 The `claimed` vs `verified` rule applies to everything: **verified** requires hash-pinned artifacts, a commit-pinned runtime, and two reproductions. Maintainers will label your submission `claimed` until it reproduces.
+
+## Submitting a runbook
+
+Copy the shape of [runbooks/unified-128gb.yaml](runbooks/unified-128gb.yaml). The rules that make runbooks worth trusting:
+
+- **Numbers are folded, never authored.** Every `expected` entry needs a `source` naming a committed `benchresult/v1` result — `frontier runbook verify` (run in CI) rejects anything else. Combinations without results are listed `unmeasured: true`, with no numbers.
+- Menu verdicts must agree with the committed plan files they reference.
+- Model menu entries come from the catalog ([RFC 0004](rfcs/0004-catalog-admission.md)).
+- Prose (diagnosis, troubleshooting) is yours — that is the human knowledge a runbook exists to carry.
 
 ## Code contributions
 
