@@ -10,5 +10,5 @@ alwaysApply: false
 - **Refusal is a feature.** Frame `not_recommended` verdicts as the product working, never as a shortcoming to apologize for.
 - **No marketing superlatives.** No "blazing fast," "revolutionary," "game-changing." The numbers and their provenance do the persuading.
 - **No sponsor is named until confirmed in writing.** Do not name any company as sponsor, funder, or backer anywhere in the repo until written confirmation exists. Once confirmed, mentions stay high-level: named as sponsor only, no claims about what the sponsorship funds or provides, no platform statistics, never speak on the sponsor's behalf, and always pair the mention with the independence statement (technical decisions unchanged; results-integrity rule applies equally).
-- **The operating thesis** is the project's own, unattributed: "build the base, rent the spike."
+- **The operating thesis** is stated as the project's own, unattributed: "own the steady state, rent the surge." Do not use the phrase "build the base, rent the spike" anywhere in the repo — it is reserved for a party not yet named.
 - Claims about models use `claimed` language with sources; usability statements require verified benchmark rows.

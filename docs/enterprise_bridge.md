@@ -32,9 +32,9 @@ A typical journey up the bridge:
 
 The design point that makes this work: **the hardware profile schema is a resource graph, not a fixed field set** (see [RFC 0001](../rfcs/0001-resource-graph-schemas.md)). A rack node is the same schema as a laptop — more compute nodes, more memory classes, more links. Moving up the bridge is a schema change, not a rewrite. Your plans, benchmarks, and workload profiles carry forward.
 
-## Build the base, rent the spike
+## Own the steady state, rent the surge
 
-The continuum maps onto a simple operating thesis: **build the base, rent the spike.** The owned tiers — workstation, lab server, private rack, colocation — are the base where steady-state AI workloads live; the cloud and partner tiers are where you rent capacity for the peaks (the "cloud-adjacent burst" profile in the Phase 6 list below is exactly that seam). Frontier Bridge's job is to make the base credible: measured proof of what each rung can run, and plans that carry forward when you move up one.
+The continuum maps onto a simple operating thesis: **own the steady state, rent the surge.** The owned tiers — workstation, lab server, private rack, colocation — are where steady-state AI workloads live; the cloud and partner tiers are where you rent capacity for the peaks (the "cloud-adjacent burst" profile in the Phase 6 list below is exactly that seam). Frontier Bridge's job is to make the owned tiers credible: measured proof of what each rung can run, and plans that carry forward when you move up one.
 
 ## What lands here (Phase 6+)
 

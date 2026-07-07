@@ -229,7 +229,7 @@ Additional MoE families (Qwen, MiniMax, Kimi, and newer GLM/DeepSeek releases) f
 
 ## Vision
 
-The operating thesis is simple: **build the base, rent the spike.** Own the infrastructure for your steady-state AI workloads — a workstation, a lab server, a private rack — and rent cloud capacity for the peaks. Frontier Bridge makes the base side of that equation credible: measured proof of what hardware you own can actually run.
+The operating thesis is simple: **own the steady state, rent the surge.** Run your steady-state AI workloads on infrastructure you own — a workstation, a lab server, a private rack — and rent cloud capacity for the peaks. Frontier Bridge makes the owned side of that equation credible: measured proof of what hardware you own can actually run.
 
 **AI runs across a continuum of infrastructure** — laptops, workstations, lab servers, private racks, colocation, and hyperscale platforms — and the aim is for the most capable open models to be practical at every rung someone can afford. Because the same resource-graph schema describes a workstation and a rack node, the project's profiles, plans, and benchmarks carry across that whole range. Full mission and strategy: [MISSION.md](MISSION.md); the upward path is sketched in [docs/enterprise_bridge.md](docs/enterprise_bridge.md).
 
